@@ -11,7 +11,7 @@ pub(crate) fn rsa_modulus() -> Integer {
     .expect("valid RSA-2048 modulus")
 }
 
-pub(crate) const VDF_T: u32 = 23;
+pub(crate) const VDF_T: u32 = 24;
 
 /// Compute y = x^(2^(2^t)) mod n via 2^t sequential squarings
 pub(crate) fn vdf(x: &Integer, t: u32, n: &Integer) -> Integer {
