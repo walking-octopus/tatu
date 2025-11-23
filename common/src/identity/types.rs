@@ -1,8 +1,7 @@
 use crate::identity::{Claim, Handle};
-use blake2::Blake2s256;
+use blake2::{Blake2b, digest::consts::U32};
 use digest::Digest;
 use ed25519_dalek::{SigningKey, VerifyingKey, SECRET_KEY_LENGTH};
-use rand_core::{OsRng, RngCore};
 use std::fmt;
 use uuid::Uuid;
 
@@ -19,8 +18,9 @@ pub struct Identity {
 impl Identity {
     /// Create a new random identity.
     pub fn generate() -> Self {
+        use rand::RngCore;
         let mut secret_key_bytes = [0u8; SECRET_KEY_LENGTH];
-        OsRng.fill_bytes(&mut secret_key_bytes);
+        rand::rng().fill_bytes(&mut secret_key_bytes);
         Identity {
             signing_key: SigningKey::from_bytes(&secret_key_bytes),
         }
@@ -51,7 +51,7 @@ impl Identity {
     /// This UUID is deterministic and persistent across all servers.
     pub fn uuid(&self) -> Uuid {
         let pubkey_bytes = self.verifying_key().to_bytes();
-        let hash = Blake2s256::digest(pubkey_bytes);
+        let hash = Blake2b::<U32>::digest(pubkey_bytes);
         Uuid::from_bytes(hash[0..16].try_into().expect("hash is 32 bytes"))
     }
 
@@ -88,7 +88,7 @@ impl PublicIdentity {
     /// This is called internally after claim verification succeeds.
     pub(crate) fn from_verified_claim(verifying_key: VerifyingKey, handle: Handle) -> Self {
         let pubkey_bytes = verifying_key.to_bytes();
-        let hash = Blake2s256::digest(pubkey_bytes);
+        let hash = Blake2b::<U32>::digest(pubkey_bytes);
         let uuid = Uuid::from_bytes(hash[0..16].try_into().expect("hash is 32 bytes"));
 
         PublicIdentity {
