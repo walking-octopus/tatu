@@ -51,7 +51,8 @@ async fn load_or_generate_identity(key_path: &str) -> anyhow::Result<Identity> {
         secret_key.copy_from_slice(&key_bytes);
         let identity = Identity::from_bytes(&secret_key);
 
-        info!("Loaded identity: pubkey={:02x?}...", &identity.verifying_key().to_bytes()[..8]);
+        let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
+        info!("Loaded identity {}", pubkey_b58);
         Ok(identity)
     } else {
         info!("Generating new identity keypair...");
@@ -59,7 +60,9 @@ async fn load_or_generate_identity(key_path: &str) -> anyhow::Result<Identity> {
 
         fs::write(path, &identity.to_bytes()).await?;
         info!("Saved new identity to {}", key_path);
-        info!("Generated identity: pubkey={:02x?}...", &identity.verifying_key().to_bytes()[..8]);
+
+        let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
+        info!("Generated identity {}", pubkey_b58);
 
         Ok(identity)
     }
