@@ -103,7 +103,7 @@ Client computes:
   6. π = Wesolowski.prove(x, y, T, N)
 
   7. discriminator = format_disc(H(y))
-  8. uuid = BLAKE2b-256(verify_key)[0..16]
+  8. uuid = BLAKE2b-256(verify_key)[0..16]  // Raw 128 bits, NOT RFC 4122
 
 Discriminator encoding:
   hash = BLAKE2b(y, digest_size=4)
@@ -142,7 +142,7 @@ Verification steps:
      discriminator = format(H(vdf_output))
 
   5. Derive UUID:
-     uuid = BLAKE2b-256(ed25519_pubkey)[0..16]
+     uuid = BLAKE2b-256(ed25519_pubkey)[0..16]  // Raw 128 bits, NOT RFC 4122
 ```
 
 **Security properties**:
