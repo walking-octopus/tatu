@@ -2,14 +2,23 @@
 
 An alternative Minecraft protocol providing cross-server identity without auth servers, sound transport encryption, lower latency, and better performance over poor network links.
 
-Reference implementation as a Rust proxy. Protocol could be implemented directly in Fabric/Java. Specification: [PROTOCOL.md](PROTOCOL.md)
+This is a reference implementation as a Rust proxy. Protocol could be implemented directly in Fabric/Java. Specification: [PROTOCOL.md](PROTOCOL.md)
 
 > [!WARNING]
 > Work in progress. Protocol is unstable and subject to change.
 
 ## Status
 
-- [x] Authentication
-- [ ] Transport encryption
+- [x] Identity:
+  - [x] Nick#disc handles
+  - [x] Static UUIDs
+  - [ ] Skin/cape uploads (needs specification)
+- [x] Authentication:
+  - [ ] Handle claim pinning
+  - [ ] Server pubkeys, pinning
+  - [ ] Show server/peer pubkeys in chat
+- [ ] Transport encryption:
+  - [ ] Noise XX introductory
+  - [ ] Noise KK with known servers
 - [ ] Session resumption
 - [ ] Heterogeneous reliability
