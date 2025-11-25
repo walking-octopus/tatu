@@ -16,10 +16,10 @@ This is a reference implementation as a Rust proxy. Protocol could be implemente
 - [x] Authentication:
   - [x] Client, server authentication
   - [ ] Handle claim pinning
-  - [ ] Server pubkeys, pinning
-  - [ ] Show server/peer pubkeys in chat
+  - [x] Server identity, pinning
+  - [ ] Show server identities in chat
 - [ ] Transport encryption:
-  - [x] Noise XX introductory
-  - [ ] Noise KK with known servers
+  - [x] Noise XX
+  - [ ] Fast Noise KK for known servers
 - [ ] Session resumption
 - [ ] Heterogeneous reliability

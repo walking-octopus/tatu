@@ -32,7 +32,14 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let server_static_key = tatu_common::keyfile::load_or_generate_key(&args.key).await?;
-    info!("Server static key loaded from {}", args.key);
+
+    // Print server public key for out-of-band verification
+    // Use Curve25519 public key (what clients see in Noise handshake)
+    let server_curve25519_pubkey = tatu_common::curve25519_pubkey(&server_static_key)?;
+    let server_pubkey_b58 = bs58::encode(&server_curve25519_pubkey).into_string();
+    info!("Server identity loaded from {}", args.key);
+    info!("Server identity: {}", server_pubkey_b58);
+    info!("Share this on multiple independent platforms for out-of-band verification!");
 
     let listener = TcpListener::bind(&args.listen).await?;
     info!("Listening on {}, proxying to {}", args.listen, args.proxy);

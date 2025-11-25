@@ -18,6 +18,21 @@ const MAX_HANDSHAKE_MESSAGE: usize = 65536;
 
 const NOISE_PATTERN: &str = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
 
+/// Get the Curve25519 public key corresponding to a private key.
+/// This is useful for displaying the server's public key at startup.
+/// Uses X25519 (Curve25519 DH) which is what Noise uses internally.
+pub fn curve25519_pubkey(private_key: &[u8; 32]) -> io::Result<[u8; 32]> {
+    use curve25519_dalek::scalar::clamp_integer;
+    use curve25519_dalek::montgomery::MontgomeryPoint;
+
+    // Clamp the scalar per X25519 spec
+    let clamped = clamp_integer(*private_key);
+
+    // Compute the public key: base * scalar
+    let point = MontgomeryPoint::mul_base_clamped(clamped);
+
+    Ok(point.to_bytes())
+}
 
 /// Client-side Noise_XX handshake. Returns transport state and server's static key.
 pub async fn noise_xx_client<S>(

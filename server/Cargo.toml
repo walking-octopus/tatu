@@ -18,3 +18,4 @@ blake2.workspace = true
 digest.workspace = true
 ed25519-dalek.workspace = true
 rand.workspace = true
+bs58.workspace = true
