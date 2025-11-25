@@ -10,7 +10,7 @@ use azalea::protocol::{
     },
     read::ReadPacketError,
 };
-use tatu_common::{ClientHello, ClientResponse, ServerChallenge};
+use tatu_common::{ClientHello, ClientResponse, PacketBatch, ServerChallenge};
 
 use clap::Parser;
 
@@ -123,16 +123,20 @@ async fn transfer(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let name = hello.name.clone();
 
-    let outbound = TcpStream::connect(&proxy_addr).await?;
+    let mut outbound = TcpStream::connect(&proxy_addr).await?;
     outbound.set_nodelay(true)?;
     outbound.set_quickack(true)?;
 
-    let mut outbound_conn: Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> =
-        Connection::wrap(outbound);
-    outbound_conn.write(intent).await?;
+    // Bundle Handshake + Login Start to reduce RTT
+    PacketBatch::new()
+        .add(intent)?
+        .add(hello.clone())?
+        .write(&mut outbound)
+        .await?;
 
-    let mut outbound_conn = outbound_conn.login();
-    outbound_conn.write(hello).await?;
+    let outbound_conn: Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> =
+        Connection::wrap(outbound);
+    let outbound_conn = outbound_conn.login();
     let mut outbound = outbound_conn.unwrap()?;
 
     let (mut ri, mut wi) = inbound.split();
@@ -147,6 +151,8 @@ async fn transfer(
         io::copy(&mut ro, &mut wi).await?;
         wi.shutdown().await
     };
+
+    // FIXME: Connection error: Broken pipe on player disconnection, but not always?
 
     tokio::try_join!(client_to_server, server_to_client)?;
     info!("{} disconnected", name);

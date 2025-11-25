@@ -6,19 +6,19 @@ use azalea::protocol::{
         ClientIntention,
     },
 };
-use tatu_common::{ClientHello, ServerChallenge, ClientResponse};
+use tatu_common::{ClientHello, ClientResponse, PacketBatch, ServerChallenge};
 
 use clap::Parser;
 use std::path::Path;
 use tatu_common::Identity;
+
+mod claim;
 use tokio::{
     fs,
     io::{self, AsyncWriteExt},
     net::{TcpListener, TcpStream},
 };
 use tracing::{Level, error, info};
-
-mod claim;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Tatu client proxy", long_about = None)]
@@ -129,12 +129,16 @@ async fn handle_connection(client_stream: TcpStream, identity: Identity, server_
     let response = ClientResponse::sign_challenge(&server_challenge, &identity);
     response.write(&mut server_stream).await?;
 
-    let mut server_conn: Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> =
-        Connection::wrap(server_stream);
-    server_conn.write(handshake_packet).await?;
+    // Bundle Handshake + Login Start to reduce RTT by sending both in one TCP segment
+    PacketBatch::new()
+        .add(handshake_packet)?
+        .add(hello.clone())?
+        .write(&mut server_stream)
+        .await?;
 
-    let mut server_conn = server_conn.login();
-    server_conn.write(hello).await?;
+    let server_conn: Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> =
+        Connection::wrap(server_stream);
+    let server_conn = server_conn.login();
 
     let mut client_stream = login_conn.unwrap()?;
     let mut server_stream = server_conn.unwrap()?;
