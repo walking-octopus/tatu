@@ -1,5 +1,4 @@
 use crate::primitives::vdf;
-use bincode::{Decode, Encode};
 use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 use rug::Integer;
 use serde::{Deserialize, Serialize};
@@ -13,31 +12,8 @@ pub struct Claim {
     nick: String,
     #[serde(with = "serde_big_array::BigArray")]
     nick_signature: [u8; 64],
-    #[serde(with = "serde_integer")]
     vdf_output: Integer,
-    #[serde(with = "serde_integer")]
     vdf_proof: Integer,
-}
-
-mod serde_integer {
-    use rug::Integer;
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S>(value: &Integer, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let bytes = value.to_digits::<u8>(rug::integer::Order::MsfBe);
-        serializer.serialize_bytes(&bytes)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Integer, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let bytes = Vec::<u8>::deserialize(deserializer)?;
-        Ok(Integer::from_digits(&bytes, rug::integer::Order::MsfBe))
-    }
 }
 
 impl Claim {
@@ -91,40 +67,6 @@ impl Claim {
 
     pub fn nick_signature(&self) -> &[u8; 64] {
         &self.nick_signature
-    }
-}
-
-// Manual Encode/Decode for bincode
-impl Encode for Claim {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> Result<(), bincode::error::EncodeError> {
-        Encode::encode(&self.nick, encoder)?;
-        Encode::encode(&self.nick_signature, encoder)?;
-        let vdf_output_bytes = self.vdf_output.to_digits::<u8>(rug::integer::Order::MsfBe);
-        let vdf_proof_bytes = self.vdf_proof.to_digits::<u8>(rug::integer::Order::MsfBe);
-        Encode::encode(&vdf_output_bytes, encoder)?;
-        Encode::encode(&vdf_proof_bytes, encoder)?;
-        Ok(())
-    }
-}
-
-impl<C> Decode<C> for Claim {
-    fn decode<D: bincode::de::Decoder>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let nick = Decode::decode(decoder)?;
-        let nick_signature = Decode::decode(decoder)?;
-        let vdf_output_bytes: Vec<u8> = Decode::decode(decoder)?;
-        let vdf_proof_bytes: Vec<u8> = Decode::decode(decoder)?;
-
-        Ok(Self {
-            nick,
-            nick_signature,
-            vdf_output: Integer::from_digits(&vdf_output_bytes, rug::integer::Order::MsfBe),
-            vdf_proof: Integer::from_digits(&vdf_proof_bytes, rug::integer::Order::MsfBe),
-        })
     }
 }
 

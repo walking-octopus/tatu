@@ -5,7 +5,7 @@ An alternative Minecraft protocol providing cross-server identity without auth s
 This is a reference implementation as a Rust proxy. Protocol could be implemented directly in Fabric/Java. Specification: [PROTOCOL.md](PROTOCOL.md)
 
 > [!WARNING]
-> Work in progress. Protocol is unstable and subject to change.
+> Work in progress. Protocol is unstable and subject to change. Documentation may not reflect the current state of the codebase.
 
 ## Status
 
@@ -14,11 +14,11 @@ This is a reference implementation as a Rust proxy. Protocol could be implemente
   - [x] Static UUIDs
   - [ ] Skin/cape uploads (needs specification)
 - [x] Authentication:
-  - [x] Client, server authentication
-  - [ ] Handle claim pinning
+  - [x] Client authentication
   - [x] Server identity, pinning
-  - [ ] Show server identities in chat
-- [ ] Transport encryption:
+    - [ ] Show server identities in chat
+  - [ ] Handle claim caching
+- [x] Transport encryption:
   - [x] Noise XX
   - [ ] Fast Noise KK for known servers
 - [ ] Session resumption

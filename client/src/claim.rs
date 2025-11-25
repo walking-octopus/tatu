@@ -17,7 +17,7 @@ pub async fn load_or_mine_claim(nick: &str, identity: &Identity) -> anyhow::Resu
         let claim_bytes = fs::read(&path).await?;
         let config = bincode::config::standard();
 
-        if let Ok((claim, _)) = bincode::decode_from_slice::<Claim, _>(&claim_bytes, config) {
+        if let Ok((claim, _)) = bincode::serde::decode_from_slice::<Claim, _>(&claim_bytes, config) {
             if let Ok(_disc) = claim.verify(&identity.verifying_key()) {
                 return Ok(claim);
             }
@@ -41,7 +41,7 @@ async fn mine_new_claim(nick: &str, identity: &Identity) -> anyhow::Result<Claim
 
     fs::create_dir_all(CLAIMS_DIR).await?;
     let config = bincode::config::standard();
-    let claim_bytes = bincode::encode_to_vec(&claim, config)?;
+    let claim_bytes = bincode::serde::encode_to_vec(&claim, config)?;
     fs::write(&claim_path(nick), claim_bytes).await?;
 
     Ok(claim)

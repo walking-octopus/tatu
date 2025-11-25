@@ -83,7 +83,7 @@ where
     server_static.copy_from_slice(server_pubkey);
 
     // -> s, se, ENCRYPTED[claim]
-    let payload_bytes = bincode::encode_to_vec(&claim, bincode::config::standard())
+    let payload_bytes = bincode::serde::encode_to_vec(&claim, bincode::config::standard())
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     let len = noise.write_message(&payload_bytes, &mut buf).map_err(|e| {
@@ -153,7 +153,7 @@ where
         .get_remote_static()
         .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Client static key not received"))?;
 
-    let (claim, _): (Claim, _) = bincode::decode_from_slice(&buf[..payload_len], bincode::config::standard())
+    let (claim, _): (Claim, _) = bincode::serde::decode_from_slice(&buf[..payload_len], bincode::config::standard())
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     // Derive Ed25519 public key from the Noise Curve25519 static key

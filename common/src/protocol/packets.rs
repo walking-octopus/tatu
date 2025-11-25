@@ -4,16 +4,14 @@ use ed25519_dalek::{Signature, Signer, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use bincode::{Decode, Encode};
 use std::io;
 
 /// Generic packet read/write for length-prefixed bincode messages.
-async fn write_packet<W: AsyncWrite + Unpin, T: Encode>(
+async fn write_packet<W: AsyncWrite + Unpin, T: Serialize>(
     writer: &mut W,
     packet: &T,
 ) -> io::Result<()> {
-    let config = bincode::config::standard();
-    let encoded = bincode::encode_to_vec(packet, config)
+    let encoded = bincode::serde::encode_to_vec(packet, bincode::config::standard())
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     let len = encoded.len() as u32;
@@ -24,7 +22,7 @@ async fn write_packet<W: AsyncWrite + Unpin, T: Encode>(
     Ok(())
 }
 
-async fn read_packet<R: AsyncRead + Unpin, T: Decode<()>>(
+async fn read_packet<R: AsyncRead + Unpin, T: for<'de> Deserialize<'de>>(
     reader: &mut R,
     max_size: u32,
     packet_name: &str,
@@ -41,8 +39,7 @@ async fn read_packet<R: AsyncRead + Unpin, T: Decode<()>>(
     let mut buf = vec![0u8; len as usize];
     reader.read_exact(&mut buf).await?;
 
-    let config = bincode::config::standard();
-    bincode::decode_from_slice(&buf, config)
+    bincode::serde::decode_from_slice(&buf, bincode::config::standard())
         .map(|(result, _)| result)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
@@ -85,36 +82,7 @@ impl ClientHello {
     }
 }
 
-// Manual Encode/Decode for bincode
-impl Encode for ClientHello {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> Result<(), bincode::error::EncodeError> {
-        Encode::encode(&self.version, encoder)?;
-        Encode::encode(&self.pubkey, encoder)?;
-        Encode::encode(&self.claim, encoder)?;
-        Ok(())
-    }
-}
-
-impl<C> Decode<C> for ClientHello {
-    fn decode<D: bincode::de::Decoder>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let version = Decode::decode(decoder)?;
-        let pubkey = Decode::decode(decoder)?;
-        let claim = Decode::decode(decoder)?;
-
-        Ok(Self {
-            version,
-            pubkey,
-            claim,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerChallenge {
     pub nonce: [u8; 32],
 }
@@ -145,7 +113,7 @@ impl ServerChallenge {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientResponse {
     #[serde(with = "BigArray")]
     pub signature: [u8; 64],
