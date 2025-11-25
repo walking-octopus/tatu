@@ -39,12 +39,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "android_log-sys"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84521a3cf562bc62942e294181d9eef17eb38ceb8c68677bc49f144e4c3d4f8d"
-
-[[package]]
 name = "anstream"
 version = "0.6.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,7 +194,7 @@ checksum = "7b7e4c2464d97fe331d41de9d5db0def0a96f4d823b8b32a2efd503578988973"
 [[package]]
 name = "azalea"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-auth",
  "azalea-block",
@@ -227,7 +221,6 @@ dependencies = [
  "num-traits",
  "parking_lot",
  "rustc-hash",
- "serde",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -237,7 +230,7 @@ dependencies = [
 [[package]]
 name = "azalea-auth"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf",
  "azalea-crypto",
@@ -247,7 +240,6 @@ dependencies = [
  "crypto-primes",
  "indexmap",
  "md-5",
- "reqwest",
  "rsa",
  "serde",
  "serde_json",
@@ -261,7 +253,7 @@ dependencies = [
 [[package]]
 name = "azalea-block"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-block-macros",
  "azalea-buf",
@@ -271,7 +263,7 @@ dependencies = [
 [[package]]
 name = "azalea-block-macros"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -281,7 +273,7 @@ dependencies = [
 [[package]]
 name = "azalea-brigadier"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf",
  "azalea-chat",
@@ -291,7 +283,7 @@ dependencies = [
 [[package]]
 name = "azalea-buf"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf-macros",
  "byteorder",
@@ -306,7 +298,7 @@ dependencies = [
 [[package]]
 name = "azalea-buf-macros"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -316,7 +308,7 @@ dependencies = [
 [[package]]
 name = "azalea-chat"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf",
  "azalea-language",
@@ -330,7 +322,7 @@ dependencies = [
 [[package]]
 name = "azalea-client"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "async-compat",
  "azalea-auth",
@@ -347,7 +339,6 @@ dependencies = [
  "azalea-world",
  "bevy_app",
  "bevy_ecs",
- "bevy_log",
  "bevy_tasks",
  "bevy_time",
  "chrono",
@@ -357,7 +348,6 @@ dependencies = [
  "parking_lot",
  "pastey",
  "regex",
- "reqwest",
  "simdnbt",
  "thiserror 2.0.17",
  "tokio",
@@ -368,7 +358,7 @@ dependencies = [
 [[package]]
 name = "azalea-core"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf",
  "azalea-chat",
@@ -388,7 +378,7 @@ dependencies = [
 [[package]]
 name = "azalea-crypto"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "aes",
  "azalea-buf",
@@ -405,7 +395,7 @@ dependencies = [
 [[package]]
 name = "azalea-entity"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-auth",
  "azalea-block",
@@ -430,7 +420,7 @@ dependencies = [
 [[package]]
 name = "azalea-inventory"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-auth",
  "azalea-buf",
@@ -448,7 +438,7 @@ dependencies = [
 [[package]]
 name = "azalea-inventory-macros"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -458,7 +448,7 @@ dependencies = [
 [[package]]
 name = "azalea-language"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "compact_str",
  "serde_json",
@@ -467,7 +457,7 @@ dependencies = [
 [[package]]
 name = "azalea-physics"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-block",
  "azalea-core",
@@ -484,7 +474,7 @@ dependencies = [
 [[package]]
 name = "azalea-protocol"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-auth",
  "azalea-block",
@@ -518,7 +508,7 @@ dependencies = [
 [[package]]
 name = "azalea-protocol-macros"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -528,7 +518,7 @@ dependencies = [
 [[package]]
 name = "azalea-registry"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-buf",
  "azalea-registry-macros",
@@ -539,7 +529,7 @@ dependencies = [
 [[package]]
 name = "azalea-registry-macros"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "quote",
  "syn",
@@ -548,7 +538,7 @@ dependencies = [
 [[package]]
 name = "azalea-world"
 version = "0.14.0+mc1.21.10"
-source = "git+https://github.com/azalea-rs/azalea#6930966aabf9b49fb6a0dc8b61076fa3f1abc298"
+source = "git+https://github.com/azalea-rs/azalea?branch=online-mode-feature#7fc85fd76ef20da2741491dea47a8cb886dd9b8e"
 dependencies = [
  "azalea-block",
  "azalea-buf",
@@ -559,7 +549,6 @@ dependencies = [
  "nohash-hasher",
  "parking_lot",
  "rustc-hash",
- "serde",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -595,14 +584,11 @@ dependencies = [
  "bevy_tasks",
  "bevy_utils",
  "cfg-if",
- "console_error_panic_hook",
  "ctrlc",
  "downcast-rs",
  "log",
  "thiserror 2.0.17",
  "variadics_please",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -657,24 +643,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_log"
-version = "0.17.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1a2d4ea086ac4663ab9dfb056c7b85eee39e18f7e3e9a4ae6e39897eaa155c5"
-dependencies = [
- "android_log-sys",
- "bevy_app",
- "bevy_ecs",
- "bevy_platform",
- "bevy_utils",
- "tracing",
- "tracing-log",
- "tracing-oslog",
- "tracing-subscriber",
- "tracing-wasm",
-]
-
-[[package]]
 name = "bevy_macro_utils"
 version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -696,7 +664,6 @@ dependencies = [
  "critical-section",
  "foldhash",
  "futures-channel",
- "getrandom 0.3.4",
  "hashbrown",
  "js-sys",
  "portable-atomic",
@@ -705,7 +672,6 @@ dependencies = [
  "spin",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "web-time",
 ]
 
 [[package]]
@@ -1076,16 +1042,6 @@ checksum = "4ca0197aee26d1ae37445ee532fefce43251d24cc7c166799f4d46817f1d3973"
 dependencies = [
  "crossbeam-utils",
  "portable-atomic",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1462,12 +1418,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fnv"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
 name = "foldhash"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1601,10 +1551,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "335ff9f135e4384c8150d6f27c6daed433577f86b4750418338c01a1a2528592"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1614,11 +1562,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "r-efi",
  "wasip2",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1724,114 +1670,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "http"
-version = "1.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4a85d31aea989eead29a3aaf9e1115a180df8282431156e533de47660892565"
-dependencies = [
- "bytes",
- "fnv",
- "itoa",
-]
-
-[[package]]
-name = "http-body"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
-dependencies = [
- "bytes",
- "http",
-]
-
-[[package]]
-name = "http-body-util"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b021d93e26becf5dc7e1b75b1bed1fd93124b374ceb73f43d4d4eafec896a64a"
-dependencies = [
- "bytes",
- "futures-core",
- "http",
- "http-body",
- "pin-project-lite",
-]
-
-[[package]]
-name = "httparse"
-version = "1.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
-
-[[package]]
 name = "hybrid-array"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f471e0a81b2f90ffc0cb2f951ae04da57de8baa46fa99112b062a5173a5088d0"
 dependencies = [
  "typenum",
-]
-
-[[package]]
-name = "hyper"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ab2d4f250c3d7b1c9fcdff1cece94ea4e2dfbec68614f7b87cb205f24ca9d11"
-dependencies = [
- "atomic-waker",
- "bytes",
- "futures-channel",
- "futures-core",
- "http",
- "http-body",
- "httparse",
- "itoa",
- "pin-project-lite",
- "pin-utils",
- "smallvec",
- "tokio",
- "want",
-]
-
-[[package]]
-name = "hyper-rustls"
-version = "0.27.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3c93eb611681b207e1fe55d5a71ecf91572ec8a6705cdb6857f7d8d5242cf58"
-dependencies = [
- "http",
- "hyper",
- "hyper-util",
- "rustls",
- "rustls-pki-types",
- "tokio",
- "tokio-rustls",
- "tower-service",
- "webpki-roots",
-]
-
-[[package]]
-name = "hyper-util"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52e9a2a24dc5c6821e71a7030e1e14b7b632acac55c40e9d2e082c621261bb56"
-dependencies = [
- "base64",
- "bytes",
- "futures-channel",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "hyper",
- "ipnet",
- "libc",
- "percent-encoding",
- "pin-project-lite",
- "socket2 0.6.1",
- "tokio",
- "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -1974,16 +1818,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
 
 [[package]]
-name = "iri-string"
-version = "0.7.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f867b9d1d896b67beb18518eda36fdb77a32ea590de864f1325b294a6d14397"
-dependencies = [
- "memchr",
- "serde",
-]
-
-[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2052,21 +1886,6 @@ name = "log"
 version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
-
-[[package]]
-name = "lru-slab"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
-
-[[package]]
-name = "matchers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
-dependencies = [
- "regex-automata",
-]
 
 [[package]]
 name = "md-5"
@@ -2448,61 +2267,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quinn"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e20a958963c291dc322d98411f541009df2ced7b5a4f2bd52337638cfccf20"
-dependencies = [
- "bytes",
- "cfg_aliases",
- "pin-project-lite",
- "quinn-proto",
- "quinn-udp",
- "rustc-hash",
- "rustls",
- "socket2 0.6.1",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "web-time",
-]
-
-[[package]]
-name = "quinn-proto"
-version = "0.11.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1906b49b0c3bc04b5fe5d86a77925ae6524a19b816ae38ce1e426255f1d8a31"
-dependencies = [
- "bytes",
- "getrandom 0.3.4",
- "lru-slab",
- "rand 0.9.2",
- "ring",
- "rustc-hash",
- "rustls",
- "rustls-pki-types",
- "slab",
- "thiserror 2.0.17",
- "tinyvec",
- "tracing",
- "web-time",
-]
-
-[[package]]
-name = "quinn-udp"
-version = "0.5.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "addec6a0dcad8a8d96a771f815f0eaf55f9d1805756410b39f5fa81332574cbd"
-dependencies = [
- "cfg_aliases",
- "libc",
- "once_cell",
- "socket2 0.6.1",
- "tracing",
- "windows-sys 0.60.2",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2632,44 +2396,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
-name = "reqwest"
-version = "0.12.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0946410b9f7b082a427e4ef5c8ff541a88b357bc6c637c40db3a68ac70a36f"
-dependencies = [
- "base64",
- "bytes",
- "futures-core",
- "http",
- "http-body",
- "http-body-util",
- "hyper",
- "hyper-rustls",
- "hyper-util",
- "js-sys",
- "log",
- "percent-encoding",
- "pin-project-lite",
- "quinn",
- "rustls",
- "rustls-pki-types",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sync_wrapper",
- "tokio",
- "tokio-rustls",
- "tower",
- "tower-http",
- "tower-service",
- "url",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "webpki-roots",
-]
-
-[[package]]
 name = "resolv-conf"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2749,41 +2475,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustls"
-version = "0.23.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "533f54bc6a7d4f647e46ad909549eda97bf5afc1585190ef692b4286b198bd8f"
-dependencies = [
- "once_cell",
- "ring",
- "rustls-pki-types",
- "rustls-webpki",
- "subtle",
- "zeroize",
-]
-
-[[package]]
-name = "rustls-pki-types"
-version = "1.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94182ad936a0c91c324cd46c6511b9510ed16af436d7b5bab34beab0afd55f7a"
-dependencies = [
- "web-time",
- "zeroize",
-]
-
-[[package]]
-name = "rustls-webpki"
-version = "0.103.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ffdfa2f5286e2247234e03f680868ac2815974dc39e00ea15adc445d0aafe52"
-dependencies = [
- "ring",
- "rustls-pki-types",
- "untrusted",
-]
-
-[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2857,18 +2548,6 @@ dependencies = [
  "ryu",
  "serde",
  "serde_core",
-]
-
-[[package]]
-name = "serde_urlencoded"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
-dependencies = [
- "form_urlencoded",
- "itoa",
- "ryu",
- "serde",
 ]
 
 [[package]]
@@ -3147,15 +2826,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sync_wrapper"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263"
-dependencies = [
- "futures-core",
-]
-
-[[package]]
 name = "synstructure"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3340,16 +3010,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-rustls"
-version = "0.26.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1729aa945f29d91ba541258c8df89027d5792d85a8841fb65e8bf0f4ede4ef61"
-dependencies = [
- "rustls",
- "tokio",
-]
-
-[[package]]
 name = "tokio-util"
 version = "0.7.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3391,51 +3051,6 @@ checksum = "c0cbe268d35bdb4bb5a56a2de88d0ad0eb70af5384a99d648cd4b3d04039800e"
 dependencies = [
  "winnow",
 ]
-
-[[package]]
-name = "tower"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d039ad9159c98b70ecfd540b2573b97f7f52c3e8d9f8ad57a24b916a536975f9"
-dependencies = [
- "futures-core",
- "futures-util",
- "pin-project-lite",
- "sync_wrapper",
- "tokio",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
-dependencies = [
- "bitflags",
- "bytes",
- "futures-util",
- "http",
- "http-body",
- "iri-string",
- "pin-project-lite",
- "tower",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-layer"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "121c2a6cda46980bb0fcd1647ffaf6cd3fc79a013de288782836f6df9c48780e"
-
-[[package]]
-name = "tower-service"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
@@ -3481,51 +3096,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "tracing-oslog"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76902d2a8d5f9f55a81155c08971734071968c90f2d9bfe645fe700579b2950"
-dependencies = [
- "cc",
- "cfg-if",
- "tracing-core",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "tracing-subscriber"
 version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2054a14f5307d601f88daf0553e1cbf472acc4f2c51afab632431cdcd72124d5"
 dependencies = [
- "matchers",
  "nu-ansi-term",
- "once_cell",
- "regex-automata",
  "sharded-slab",
  "smallvec",
  "thread_local",
- "tracing",
  "tracing-core",
  "tracing-log",
 ]
-
-[[package]]
-name = "tracing-wasm"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
-dependencies = [
- "tracing",
- "tracing-subscriber",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "try-lock"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "typeid"
@@ -3640,15 +3222,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
-name = "want"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa7760aed19e106de2c7c0b581b509f2f25d3dacaf737cb82ac61bc6d760b0e"
-dependencies = [
- "try-lock",
-]
-
-[[package]]
 name = "wasi"
 version = "0.11.1+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3729,25 +3302,6 @@ checksum = "3a1f95c0d03a47f4ae1f7a64643a6bb97465d9b740f0fa8f90ea33915c99a9a1"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "web-time"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "webpki-roots"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2878ef029c47c6e8cf779119f20fcf52bde7ad42a731b2a304bc221df17571e"
-dependencies = [
- "rustls-pki-types",
 ]
 
 [[package]]

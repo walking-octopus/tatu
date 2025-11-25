@@ -3,7 +3,7 @@ members = ["common", "client", "server"]
 resolver = "2"
 
 [workspace.dependencies]
-azalea = { git = "https://github.com/azalea-rs/azalea" }
+azalea = { git = "https://github.com/azalea-rs/azalea", branch = "online-mode-feature", default-features = false }
 
 blake2 = "0.10"
 digest = "0.10"
