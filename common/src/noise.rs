@@ -52,6 +52,7 @@ where
 
     let mut noise = Builder::new(pattern)
         .local_private_key(&curve25519_scalar)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise local_private_key failed: {}", e)))?
         .build_initiator()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise init failed: {}", e)))?;
 
@@ -114,6 +115,7 @@ where
 
     let mut noise = Builder::new(pattern)
         .local_private_key(server_static_key)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise local_private_key failed: {}", e)))?
         .build_responder()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise init failed: {}", e)))?;
 
