@@ -12,6 +12,8 @@ use clap::Parser;
 use tatu_common::Identity;
 
 mod claim;
+mod pinning;
+
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{Level, error, info};
 
@@ -37,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let key_bytes = tatu_common::keyfile::load_or_generate_key(&args.key).await?;
+    let key_bytes = tatu_common::identity::keyfile::load_or_generate_key(&args.key).await?;
     let identity = Identity::from_bytes(&key_bytes);
     let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
     info!("Identity: {} (uuid: {})", pubkey_b58, identity.uuid());
@@ -92,7 +94,7 @@ async fn handle_connection(client_stream: TcpStream, identity: Identity, server_
 
     // Verify or pin the server's public key (TOFU)
     let server_pubkey_b58 = bs58::encode(&server_static_key).into_string();
-    let is_new = tatu_common::pinning::verify_or_pin(
+    let is_new = pinning::verify_or_pin(
         std::path::Path::new(pins_path),
         server_addr,
         &server_static_key

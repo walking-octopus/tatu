@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let args = Args::parse();
-    let server_static_key = tatu_common::keyfile::load_or_generate_key(&args.key).await?;
+    let server_static_key = tatu_common::identity::keyfile::load_or_generate_key(&args.key).await?;
 
     // Print server public key for out-of-band verification
     // Use Curve25519 public key (what clients see in Noise handshake)

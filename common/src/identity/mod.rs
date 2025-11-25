@@ -1,5 +1,6 @@
 mod claim;
 mod handle;
+pub mod keyfile;
 mod types;
 
 pub use claim::{Claim, ClaimError};
