@@ -29,7 +29,10 @@ struct Args {
     #[arg(short, long, default_value = "127.0.0.1:25519")]
     server: String,
 
+    // should this be an env var?
     #[arg(short, long, default_value = "./tatu-id.key")]
+    // also should allow setting path for .claim files, defaulting to xdg cache
+
     key: String,
 }
 
@@ -52,7 +55,7 @@ async fn load_or_generate_identity(key_path: &str) -> anyhow::Result<Identity> {
         let identity = Identity::from_bytes(&secret_key);
 
         let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
-        info!("Loaded identity {}", pubkey_b58);
+        info!("Loaded identity {} (uuid: {})", pubkey_b58, identity.uuid());
         Ok(identity)
     } else {
         info!("Generating new identity keypair...");
@@ -62,7 +65,7 @@ async fn load_or_generate_identity(key_path: &str) -> anyhow::Result<Identity> {
         info!("Saved new identity to {}", key_path);
 
         let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
-        info!("Generated identity {}", pubkey_b58);
+        info!("Generated identity {} (uuid: {})", pubkey_b58, identity.uuid());
 
         Ok(identity)
     }
@@ -116,6 +119,8 @@ async fn handle_connection(client_stream: TcpStream, identity: Identity, server_
     server_stream.set_quickack(true)?;
 
     let claim = claim::load_or_mine_claim(&hello.name, &identity).await?;
+
+    // TODO(client): 32 sec > timelout, when identity not mined, maybe we can emulate an MCProto kick/error message for please hold?
 
     let client_hello = ClientHello::new(&identity, claim);
     client_hello.write(&mut server_stream).await?;

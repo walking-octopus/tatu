@@ -95,8 +95,8 @@ async fn handle_connection(mut stream: TcpStream, proxy_addr: &str) -> anyhow::R
                     hello.profile_id = identity.uuid();
                     // Paper enforces strict name validation :(
                     // But you can disable it in paper-global.yml!
-                    hello.name = identity.handle().to_string();//.replace("#", ":");
-
+                    hello.name = identity.handle().to_string();
+                    
                     let proxy_addr = proxy_addr.to_string();
                     tokio::spawn(transfer(conn.unwrap()?, modified_intent, hello, proxy_addr).map(|r| {
                         if let Err(e) = r {
