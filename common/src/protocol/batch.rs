@@ -72,16 +72,16 @@ impl PacketBatch {
         Ok(())
     }
 
-    /// Get the total size of the batched packets in bytes.
-    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
-    /// Check if the batch is empty.
-    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.buffer
     }
 }
 

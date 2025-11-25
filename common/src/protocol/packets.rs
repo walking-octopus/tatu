@@ -47,7 +47,6 @@ async fn read_packet<R: AsyncRead + Unpin, T: Decode<()>>(
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
-/// Client hello: Identity pubkey + Claim (nick + VDF proof)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientHello {
     pub version: u8,
@@ -58,7 +57,6 @@ pub struct ClientHello {
 impl ClientHello {
     pub const VERSION: u8 = 1;
 
-    /// Create a ClientHello from an Identity and Claim.
     pub fn new(identity: &Identity, claim: Claim) -> Self {
         Self {
             version: Self::VERSION,
@@ -67,7 +65,6 @@ impl ClientHello {
         }
     }
 
-    /// Verify the claim and return the authenticated public identity.
     pub fn verify(&self) -> Result<PublicIdentity, ClientHelloError> {
         let verifying_key = VerifyingKey::from_bytes(&self.pubkey)
             .map_err(|_| ClientHelloError::InvalidPublicKey)?;
@@ -123,7 +120,6 @@ pub struct ServerChallenge {
 }
 
 impl ServerChallenge {
-    /// Generate a new random challenge.
     pub fn generate() -> Self {
         use rand::RngCore;
         let mut nonce = [0u8; 32];
@@ -131,7 +127,6 @@ impl ServerChallenge {
         Self { nonce }
     }
 
-    /// Verify a client's response to this challenge.
     pub fn verify_response(
         &self,
         response: &ClientResponse,
@@ -157,7 +152,6 @@ pub struct ClientResponse {
 }
 
 impl ClientResponse {
-    /// Sign a challenge with an identity.
     pub fn sign_challenge(challenge: &ServerChallenge, identity: &Identity) -> Self {
         let signature = identity.signing_key().sign(&challenge.nonce);
         Self {

@@ -6,18 +6,13 @@ use azalea::protocol::{
         ClientIntention,
     },
 };
-use tatu_common::{ClientHello, ClientResponse, PacketBatch, ServerChallenge};
+use tatu_common::{noise_xx_client, NoiseStream, PacketBatch};
 
 use clap::Parser;
-use std::path::Path;
 use tatu_common::Identity;
 
 mod claim;
-use tokio::{
-    fs,
-    io::{self, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-};
+use tokio::net::{TcpListener, TcpStream};
 use tracing::{Level, error, info};
 
 #[derive(Parser, Debug)]
@@ -36,47 +31,16 @@ struct Args {
     key: String,
 }
 
-async fn load_or_generate_identity(key_path: &str) -> anyhow::Result<Identity> {
-    let path = Path::new(key_path);
-
-    if path.exists() {
-        info!("Loading existing identity from {}", key_path);
-        let key_bytes = fs::read(path).await?;
-
-        if key_bytes.len() != 32 {
-            return Err(anyhow::anyhow!(
-                "Invalid key file: expected 32 bytes, got {}",
-                key_bytes.len()
-            ));
-        }
-
-        let mut secret_key = [0u8; 32];
-        secret_key.copy_from_slice(&key_bytes);
-        let identity = Identity::from_bytes(&secret_key);
-
-        let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
-        info!("Loaded identity {} (uuid: {})", pubkey_b58, identity.uuid());
-        Ok(identity)
-    } else {
-        info!("Generating new identity keypair...");
-        let identity = Identity::generate();
-
-        fs::write(path, &identity.to_bytes()).await?;
-        info!("Saved new identity to {}", key_path);
-
-        let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
-        info!("Generated identity {} (uuid: {})", pubkey_b58, identity.uuid());
-
-        Ok(identity)
-    }
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let args = Args::parse();
-    let identity = load_or_generate_identity(&args.key).await?;
+
+    let key_bytes = tatu_common::keyfile::load_or_generate_key(&args.key).await?;
+    let identity = Identity::from_bytes(&key_bytes);
+    let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
+    info!("Identity: {} (uuid: {})", pubkey_b58, identity.uuid());
 
     let listener = TcpListener::bind(&args.listen).await?;
     info!("Client proxy listening on {}, connecting to server proxy at {}", args.listen, args.server);
@@ -120,42 +84,25 @@ async fn handle_connection(client_stream: TcpStream, identity: Identity, server_
 
     let claim = claim::load_or_mine_claim(&hello.name, &identity).await?;
 
-    // TODO(client): 32 sec > timelout, when identity not mined, maybe we can emulate an MCProto kick/error message for please hold?
+    // TODO(client): 32 sec > timeout, when identity not mined, maybe we can emulate an MCProto kick/error message for please hold?
 
-    let client_hello = ClientHello::new(&identity, claim);
-    client_hello.write(&mut server_stream).await?;
+    let (transport, _server_static_key) = noise_xx_client(&mut server_stream, &identity, &claim).await?;
 
-    let server_challenge = ServerChallenge::read(&mut server_stream).await?;
-    let response = ClientResponse::sign_challenge(&server_challenge, &identity);
-    response.write(&mut server_stream).await?;
+    // Wrap the server stream with Noise encryption
+    let mut noise_stream = NoiseStream::new(server_stream, transport);
 
-    // Bundle Handshake + Login Start to reduce RTT by sending both in one TCP segment
-    PacketBatch::new()
+    // -1 RTT: batch handshake + login in single encrypted write
+    let batch_bytes = PacketBatch::new()
         .add(handshake_packet)?
         .add(hello.clone())?
-        .write(&mut server_stream)
-        .await?;
+        .into_bytes();
+    noise_stream.write_all(&batch_bytes).await?;
 
-    let server_conn: Connection<ClientboundHandshakePacket, ServerboundHandshakePacket> =
-        Connection::wrap(server_stream);
-    let server_conn = server_conn.login();
-
+    // Get the raw Minecraft client stream
     let mut client_stream = login_conn.unwrap()?;
-    let mut server_stream = server_conn.unwrap()?;
 
-    let (mut client_read, mut client_write) = client_stream.split();
-    let (mut server_read, mut server_write) = server_stream.split();
+    // Forward all traffic bidirectionally through transparent Noise encryption
+    noise_stream.copy_bidirectional(&mut client_stream).await?;
 
-    let client_to_server = async {
-        io::copy(&mut client_read, &mut server_write).await?;
-        server_write.shutdown().await
-    };
-
-    let server_to_client = async {
-        io::copy(&mut server_read, &mut client_write).await?;
-        client_write.shutdown().await
-    };
-
-    tokio::try_join!(client_to_server, server_to_client)?;
     Ok(())
 }

@@ -195,14 +195,17 @@ Where u = 0.8562, d = 32 bits
 
 ### 3.1. First Connection (Noise_XX + VDF)
 
-**Noise configuration**: Noise_XX_25519_ChaChaPoly_BLAKE2s
+**Noise configuration**: Noise_XX_25519_ChaChaPoly_BLAKE2b
+
+The Noise XX pattern provides mutual authentication through static key exchange, eliminating the need for challenge-response:
 
 **Client prerequisites** (performed ONCE at identity creation, see §2.4):
 - Identity bundle already computed and cached locally
-- Contains: keypair, nick, nick_signature, vdf_output, vdf_proof, discriminator, uuid
+- Contains: ed25519_keypair, nick, nick_signature, vdf_output, vdf_proof, discriminator, uuid
+- Ed25519 keypair is used as Noise static keypair (25519 keys are compatible)
 - No computation needed on connection, simply load from cache
 
-**Handshake**:
+**Handshake** (Noise_XX pattern):
 ```
 -> e
 <- e, ee, s, es
@@ -212,30 +215,42 @@ Where u = 0.8562, d = 32 bits
      vdf_output: BigInt,
      vdf_proof: BigInt,
    }]
-<- ENCRYPTED[{status, uuid}]
+<- ENCRYPTED[{status: String, uuid: [u8; 16]}]
 ```
 
+**Key insight**: The third message (`-> s, se`) transmits the client's static Ed25519 public key via Noise, which serves double-duty:
+- Noise static key for transport encryption and mutual authentication
+- Identity verification key for nick signature and discriminator binding
+
 **Server verification** (see §2.4 for details):
-1. Extract client_pubkey from Noise handshake
-2. Verify Ed25519.verify(client_pubkey, nick, nick_signature)
+1. Extract client_static_key from Noise handshake (this is the Ed25519 public key)
+2. Verify Ed25519.verify(client_static_key, nick, nick_signature)
 3. Recompute x = H(nick || nick_signature) mod (N-1) + 1
 4. Verify Wesolowski proof: π^l * x^r ≡ y (mod N)  (~15ms)
 5. Derive discriminator = format(H(y))
 6. Check pin: if discriminator exists, require matching pubkey
-7. Store: client_pubkey -> (nick, discriminator, uuid)
-8. Respond with {status: "accepted", uuid}
+7. Store: client_static_key -> (nick, discriminator, uuid)
+8. Respond with ENCRYPTED[{status: "accepted", uuid}]
 
 **Client finalizes**:
-- Store server_pubkey for future Noise_KK connections
+- Store server_static_key for future Noise_KK connections
 
 **Rejection reasons**:
 - Invalid Ed25519 signature (nick not signed by claimed key)
-- Invalid VDF proof
-- Discriminator pinned to different pubkey
+- Invalid VDF proof (failed Wesolowski verification)
+- Discriminator pinned to different pubkey (TOFU violation)
+
+**Security properties**:
+- **Mutual authentication**: Both parties prove knowledge of their static keys
+- **Forward secrecy**: Ephemeral keys in messages 1-2 provide PFS
+- **Replay protection**: Noise transport inherently prevents replays
+- **No oracle attacks**: Challenge-response eliminated, Noise handles all authentication
 
 ### 3.2. Subsequent Connection (Noise_KK)
 
-**Noise configuration**: Noise_KK_25519_ChaChaPoly_BLAKE2s
+**Noise configuration**: Noise_KK_25519_ChaChaPoly_BLAKE2b
+
+When both client and server have cached each other's static keys, use the optimized KK pattern (1-RTT, fully encrypted):
 
 **Handshake**:
 ```
@@ -243,17 +258,24 @@ Where u = 0.8562, d = 32 bits
      last_seq_sent: u64,      // Optional: for session resumption
      last_seq_received: u64,
    }]
-<- e, ee, se, ENCRYPTED[{status, uuid, nick, discriminator}]
+<- e, ee, se, ENCRYPTED[{status: String, uuid: [u8; 16], nick: String, discriminator: String}]
 ```
 
 **Server processing**:
-1. Extract client_pubkey from Noise
-2. Lookup identity: client_pubkey -> (nick, discriminator, uuid)
-3. Respond with identity confirmation
+1. Extract client_static_key from Noise pre-shared knowledge
+2. Lookup identity: client_static_key -> (nick, discriminator, uuid)
+3. Respond with identity confirmation and cached handle
 
 **Client state**:
-- Client stores server_pubkey after first connection (§3.1)
-- Reuses same server_pubkey for all future connections to this server
+- Client stores server_static_key after first Noise_XX connection (§3.1)
+- Reuses same server_static_key for all future connections to this server
+- No VDF re-verification needed (already validated in first connection)
+
+**Optimization**: Noise_KK provides:
+- 1-RTT handshake (vs 1.5-RTT for Noise_XX)
+- No VDF proof transmission (~512 bytes saved)
+- No VDF verification (~15ms saved)
+- Fully encrypted from first message (metadata protection)
 
 ### 3.3. Session Resumption (Optional Extension)
 

@@ -18,7 +18,6 @@ pub async fn load_or_mine_claim(nick: &str, identity: &Identity) -> anyhow::Resu
         let config = bincode::config::standard();
 
         if let Ok((claim, _)) = bincode::decode_from_slice::<Claim, _>(&claim_bytes, config) {
-            // Verify the claim matches our current identity
             if let Ok(_disc) = claim.verify(&identity.verifying_key()) {
                 return Ok(claim);
             }

@@ -14,11 +14,12 @@ This is a reference implementation as a Rust proxy. Protocol could be implemente
   - [x] Static UUIDs
   - [ ] Skin/cape uploads (needs specification)
 - [x] Authentication:
+  - [x] Client, server authentication
   - [ ] Handle claim pinning
   - [ ] Server pubkeys, pinning
   - [ ] Show server/peer pubkeys in chat
 - [ ] Transport encryption:
-  - [ ] Noise XX introductory
+  - [x] Noise XX introductory
   - [ ] Noise KK with known servers
 - [ ] Session resumption
 - [ ] Heterogeneous reliability
