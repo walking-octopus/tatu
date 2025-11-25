@@ -135,3 +135,24 @@ impl ClientResponse {
         read_packet(reader, 1024 * 1024, "ClientResponse").await
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerError {
+    pub message: String,
+}
+
+impl ServerError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+
+    pub async fn write<W: AsyncWrite + Unpin>(&self, writer: &mut W) -> io::Result<()> {
+        write_packet(writer, self).await
+    }
+
+    pub async fn read<R: AsyncRead + Unpin>(reader: &mut R) -> io::Result<Self> {
+        read_packet(reader, 1024 * 1024, "ServerError").await
+    }
+}

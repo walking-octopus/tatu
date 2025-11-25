@@ -101,8 +101,8 @@ where
     Ok((transport, server_static))
 }
 
-/// Server-side Noise_XX handshake. Verifies claim and returns authenticated identity.
-pub async fn noise_xx_server<S>(
+/// Internal implementation of server handshake without error sending.
+async fn noise_xx_server_impl<S>(
     stream: &mut S,
     server_static_key: &[u8; 32],
 ) -> io::Result<(TransportState, PublicIdentity)>
@@ -200,6 +200,27 @@ where
     Ok((transport, identity))
 }
 
+/// Server-side Noise_XX handshake. Verifies claim and returns authenticated identity.
+/// On error, sends a ServerError message to the client before returning.
+pub async fn noise_xx_server<S>(
+    stream: &mut S,
+    server_static_key: &[u8; 32],
+) -> io::Result<(TransportState, PublicIdentity)>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    match noise_xx_server_impl(stream, server_static_key).await {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            // Send error message to client (best effort)
+            use crate::protocol::ServerError;
+            let error = ServerError::new(e.to_string());
+            let _ = error.write(stream).await;
+            Err(e)
+        }
+    }
+}
+
 /// Wraps a stream with Noise encryption.
 /// Provides a transparent streaming interface - arbitrary data is automatically
 /// chunked into 65KB Noise messages on write and reassembled on read.
@@ -221,6 +242,35 @@ where
             transport,
             read_buf: Vec::new(),
             read_pos: 0,
+        }
+    }
+
+    /// Send an error message over the encrypted stream and flush.
+    pub async fn send_error(&mut self, error_msg: &str) -> io::Result<()> {
+        use crate::protocol::ServerError;
+        let error = ServerError::new(error_msg);
+        let encoded = bincode::serde::encode_to_vec(&error, bincode::config::standard())
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        self.write_all(&encoded).await?;
+        self.flush().await
+    }
+
+    /// Try to read an error message from the encrypted stream.
+    /// Returns None if the data is not a valid ServerError packet.
+    pub async fn try_read_error(&mut self) -> io::Result<Option<String>> {
+        use crate::protocol::ServerError;
+
+        // Try to read some data
+        let mut buf = vec![0u8; 8192];
+        let n = self.read(&mut buf).await?;
+        if n == 0 {
+            return Ok(None);
+        }
+
+        // Try to decode as ServerError
+        match bincode::serde::decode_from_slice::<ServerError, _>(&buf[..n], bincode::config::standard()) {
+            Ok((error, _)) => Ok(Some(error.message)),
+            Err(_) => Ok(None),
         }
     }
 

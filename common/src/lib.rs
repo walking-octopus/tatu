@@ -14,4 +14,5 @@ pub use protocol::{
     ClientHelloError,
     ClientResponse,
     ServerChallenge,
+    ServerError,
 };

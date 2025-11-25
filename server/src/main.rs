@@ -13,6 +13,43 @@ use clap::Parser;
 use tokio::net::{TcpListener, TcpStream};
 use tracing::{Level, error, info};
 
+/// Extension trait to send errors over NoiseStream before returning them.
+trait SendErrorExt<T, S> {
+    async fn or_send_error(self, stream: &mut NoiseStream<S>) -> anyhow::Result<T>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin;
+}
+
+impl<T, S> SendErrorExt<T, S> for std::io::Result<T> {
+    async fn or_send_error(self, stream: &mut NoiseStream<S>) -> anyhow::Result<T>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+    {
+        match self {
+            Ok(val) => Ok(val),
+            Err(e) => {
+                let _ = stream.send_error(&e.to_string()).await;
+                Err(e.into())
+            }
+        }
+    }
+}
+
+impl<T, S> SendErrorExt<T, S> for anyhow::Result<T> {
+    async fn or_send_error(self, stream: &mut NoiseStream<S>) -> anyhow::Result<T>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
+    {
+        match self {
+            Ok(val) => Ok(val),
+            Err(e) => {
+                let _ = stream.send_error(&e.to_string()).await;
+                Err(e)
+            }
+        }
+    }
+}
+
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Tatu server proxy", long_about = None)]
 struct Args {
@@ -75,7 +112,7 @@ async fn handle_connection(
     // Read initial batched handshake+login from client (encrypted)
     // Read enough bytes for both packets
     let mut initial_batch = vec![0u8; 8192];
-    let n = noise_stream.read(&mut initial_batch).await?;
+    let n = noise_stream.read(&mut initial_batch).await.or_send_error(&mut noise_stream).await?;
     initial_batch.truncate(n);
 
     // Parse packets manually from decrypted batch
@@ -83,33 +120,37 @@ async fn handle_connection(
     let mut cursor = std::io::Cursor::new(&initial_batch);
 
     // VarInt-framed packet parsing
-    let handshake_len = read_varint(&mut cursor).await?;
+    let handshake_len = read_varint(&mut cursor).await.or_send_error(&mut noise_stream).await?;
     let mut handshake_data = vec![0u8; handshake_len as usize];
-    cursor.read_exact(&mut handshake_data).await?;
+    cursor.read_exact(&mut handshake_data).await.or_send_error(&mut noise_stream).await?;
 
     // Parse handshake packet
     let mut handshake_cursor = std::io::Cursor::new(&handshake_data);
-    let packet_id = read_varint(&mut handshake_cursor).await?;
+    let packet_id = read_varint(&mut handshake_cursor).await.or_send_error(&mut noise_stream).await?;
+
     if packet_id != 0x00 {
-        return Err(anyhow::anyhow!("Expected handshake packet, got ID {:#x}", packet_id));
+        return Err(anyhow::anyhow!("Expected handshake packet, got ID {:#x}", packet_id))
+            .or_send_error(&mut noise_stream).await;
     }
 
     // Parse handshake fields
-    let protocol_version = read_varint(&mut handshake_cursor).await?;
-    let hostname = read_string(&mut handshake_cursor).await?;
-    let port = handshake_cursor.read_u16().await?;
-    let intention_value = read_varint(&mut handshake_cursor).await?;
+    let protocol_version = read_varint(&mut handshake_cursor).await.or_send_error(&mut noise_stream).await?;
+    let hostname = read_string(&mut handshake_cursor).await.or_send_error(&mut noise_stream).await?;
+    let port = handshake_cursor.read_u16().await.or_send_error(&mut noise_stream).await?;
+    let intention_value = read_varint(&mut handshake_cursor).await.or_send_error(&mut noise_stream).await?;
 
     let intention = match intention_value {
         1 => azalea::protocol::packets::ClientIntention::Status,
         2 => azalea::protocol::packets::ClientIntention::Login,
         3 => azalea::protocol::packets::ClientIntention::Transfer,
-        _ => return Err(anyhow::anyhow!("Unknown intention {}", intention_value)),
+        _ => return Err(anyhow::anyhow!("Unknown intention {}", intention_value))
+            .or_send_error(&mut noise_stream).await,
     };
 
     // Only handle login intention for now
     if !matches!(intention, azalea::protocol::packets::ClientIntention::Login) {
-        return Err(anyhow::anyhow!("Only login intention is supported"));
+        return Err(anyhow::anyhow!("Only login intention is supported"))
+            .or_send_error(&mut noise_stream).await;
     }
 
     // Read login packet

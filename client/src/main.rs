@@ -62,6 +62,18 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+/// Helper to try reading server error message after handshake failure
+async fn try_read_server_error<S: tokio::io::AsyncRead + Unpin>(stream: &mut S, original_error: std::io::Error) -> anyhow::Error {
+    use tatu_common::ServerError;
+    match ServerError::read(stream).await {
+        Ok(server_error) => {
+            error!("Server rejected connection: {}", server_error.message);
+            anyhow::anyhow!("Server: {}", server_error.message)
+        },
+        Err(_) => original_error.into(),
+    }
+}
+
 async fn handle_connection(client_stream: TcpStream, identity: Identity, server_addr: &str, pins_path: &str) -> anyhow::Result<()> {
     client_stream.set_nodelay(true)?;
     let mut client_conn: Connection<ServerboundHandshakePacket, ClientboundHandshakePacket> =
@@ -90,7 +102,10 @@ async fn handle_connection(client_stream: TcpStream, identity: Identity, server_
 
     // TODO(client): 32 sec > timeout, when identity not mined, maybe we can emulate an MCProto kick/error message for please hold?
 
-    let (transport, server_static_key) = noise_xx_client(&mut server_stream, &identity, &claim).await?;
+    let (transport, server_static_key) = match noise_xx_client(&mut server_stream, &identity, &claim).await {
+        Ok(result) => result,
+        Err(e) => return Err(try_read_server_error(&mut server_stream, e).await),
+    };
 
     // Verify or pin the server's public key (TOFU)
     let server_pubkey_b58 = bs58::encode(&server_static_key).into_string();
