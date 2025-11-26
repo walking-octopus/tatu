@@ -68,12 +68,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let args = Args::parse();
-    let server_static_key = tatu_common::identity::keyfile::load_or_generate_key(&args.key).await?;
+    let server_key = tatu_common::identity::keyfile::load_or_generate_server_key(&args.key).await?;
 
     // Print server public key for out-of-band verification
     // Use Curve25519 public key (what clients see in Noise handshake)
-    let server_curve25519_pubkey = tatu_common::curve25519_pubkey(&server_static_key)?;
-    let server_pubkey_b58 = bs58::encode(&server_curve25519_pubkey).into_string();
+    let server_pubkey_b58 = bs58::encode(server_key.public_key()).into_string();
     info!("Server identity loaded from {}", args.key);
     info!("Server identity: {}", server_pubkey_b58);
     info!("Share this on multiple independent platforms for out-of-band verification!");
@@ -85,8 +84,9 @@ async fn main() -> anyhow::Result<()> {
     loop {
         let (stream, _) = listener.accept().await?;
         let proxy_addr = proxy_addr.clone();
+        let server_key = server_key.clone();
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(stream, &proxy_addr, &server_static_key).await {
+            if let Err(e) = handle_connection(stream, &proxy_addr, &server_key).await {
                 error!("Connection handler error: {e}");
             }
         });
@@ -96,14 +96,14 @@ async fn main() -> anyhow::Result<()> {
 async fn handle_connection(
     stream: TcpStream,
     proxy_addr: &str,
-    server_static_key: &[u8; 32],
+    server_key: &tatu_common::identity::ServerKey,
 ) -> anyhow::Result<()> {
     let mut stream = stream;
     stream.set_nodelay(true)?;
     stream.set_quickack(true)?;
     let ip = stream.peer_addr()?;
 
-    let (transport, identity) = noise_xx_server(&mut stream, server_static_key).await?;
+    let (transport, identity) = noise_xx_server(&mut stream, server_key).await?;
     info!("Authenticated {} ({}) from {}", identity, identity.uuid().as_hyphenated(), ip.ip());
 
     // Wrap with Noise encryption

@@ -1,4 +1,4 @@
-use crate::identity::{Claim, Identity, PublicIdentity};
+use crate::identity::{Claim, Identity, PublicIdentity, ServerKey};
 use ed25519_dalek::VerifyingKey;
 use snow::{Builder, TransportState};
 use std::io;
@@ -17,22 +17,6 @@ const MAX_NOISE_CIPHERTEXT: usize = MAX_NOISE_PLAINTEXT + NOISE_TAG_LEN;
 const MAX_HANDSHAKE_MESSAGE: usize = 65536;
 
 const NOISE_PATTERN: &str = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
-
-/// Get the Curve25519 public key corresponding to a private key.
-/// This is useful for displaying the server's public key at startup.
-/// Uses X25519 (Curve25519 DH) which is what Noise uses internally.
-pub fn curve25519_pubkey(private_key: &[u8; 32]) -> io::Result<[u8; 32]> {
-    use curve25519_dalek::scalar::clamp_integer;
-    use curve25519_dalek::montgomery::MontgomeryPoint;
-
-    // Clamp the scalar per X25519 spec
-    let clamped = clamp_integer(*private_key);
-
-    // Compute the public key: base * scalar
-    let point = MontgomeryPoint::mul_base_clamped(clamped);
-
-    Ok(point.to_bytes())
-}
 
 /// Client-side Noise_XX handshake. Returns transport state and server's static key.
 pub async fn noise_xx_client<S>(
@@ -104,7 +88,7 @@ where
 /// Internal implementation of server handshake without error sending.
 async fn noise_xx_server_impl<S>(
     stream: &mut S,
-    server_static_key: &[u8; 32],
+    server_key: &ServerKey,
 ) -> io::Result<(TransportState, PublicIdentity)>
 where
     S: AsyncRead + AsyncWrite + Unpin,
@@ -114,7 +98,7 @@ where
     })?;
 
     let mut noise = Builder::new(pattern)
-        .local_private_key(server_static_key)
+        .local_private_key(server_key.private_key())
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise local_private_key failed: {}", e)))?
         .build_responder()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Noise init failed: {}", e)))?;
@@ -204,12 +188,12 @@ where
 /// On error, sends a ServerError message to the client before returning.
 pub async fn noise_xx_server<S>(
     stream: &mut S,
-    server_static_key: &[u8; 32],
+    server_key: &ServerKey,
 ) -> io::Result<(TransportState, PublicIdentity)>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    match noise_xx_server_impl(stream, server_static_key).await {
+    match noise_xx_server_impl(stream, server_key).await {
         Ok(result) => Ok(result),
         Err(e) => {
             // Send error message to client (best effort)

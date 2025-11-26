@@ -120,6 +120,76 @@ impl fmt::Display for PublicIdentity {
     }
 }
 
+/// A server key for Noise protocol (Curve25519 keypair).
+///
+/// This wraps a Curve25519 private key used for Noise_XX handshakes.
+/// Unlike Identity (which represents a player with a persona), ServerKey
+/// is just cryptographic material - servers don't have handles or claims.
+#[derive(Clone)]
+pub struct ServerKey {
+    private_key: [u8; 32],
+    public_key: [u8; 32],
+}
+
+impl ServerKey {
+    /// Derive the Curve25519 public key from a private key.
+    ///
+    /// Uses X25519 (Curve25519 DH) which is what Noise uses internally.
+    fn derive_public_key(private_key: &[u8; 32]) -> [u8; 32] {
+        use curve25519_dalek::scalar::clamp_integer;
+        use curve25519_dalek::montgomery::MontgomeryPoint;
+
+        // Clamp the scalar per X25519 spec
+        let clamped = clamp_integer(*private_key);
+
+        // Compute the public key: base * scalar
+        let point = MontgomeryPoint::mul_base_clamped(clamped);
+
+        point.to_bytes()
+    }
+
+    /// Create a new random server key.
+    pub fn generate() -> Self {
+        use rand::RngCore;
+        let mut private_key = [0u8; 32];
+        rand::rng().fill_bytes(&mut private_key);
+
+        let public_key = Self::derive_public_key(&private_key);
+
+        ServerKey {
+            private_key,
+            public_key,
+        }
+    }
+
+    /// Load a server key from raw bytes.
+    pub fn from_bytes(bytes: &[u8; 32]) -> Self {
+        let public_key = Self::derive_public_key(bytes);
+
+        ServerKey {
+            private_key: *bytes,
+            public_key,
+        }
+    }
+
+    /// Export the private key as raw bytes for storage.
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.private_key
+    }
+
+    /// Get the Curve25519 public key for this server.
+    pub fn public_key(&self) -> &[u8; 32] {
+        &self.public_key
+    }
+
+    /// Get the private key for Noise protocol operations.
+    ///
+    /// Use this carefully - prefer using higher-level methods when possible.
+    pub fn private_key(&self) -> &[u8; 32] {
+        &self.private_key
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

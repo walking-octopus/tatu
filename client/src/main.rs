@@ -39,8 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let key_bytes = tatu_common::identity::keyfile::load_or_generate_key(&args.key).await?;
-    let identity = Identity::from_bytes(&key_bytes);
+    let identity = tatu_common::identity::keyfile::load_or_generate_identity(&args.key).await?;
     let pubkey_b58 = bs58::encode(identity.verifying_key().to_bytes()).into_string();
     info!("Identity: {} (uuid: {})", pubkey_b58, identity.uuid());
 

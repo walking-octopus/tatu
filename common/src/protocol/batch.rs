@@ -13,24 +13,6 @@ use tokio::net::TcpStream;
 /// With TCP_NODELAY enabled, each packet write creates a separate TCP segment.
 /// This wastes round trips during handshake sequences. PacketBatch allows combining
 /// multiple packets into one segment.
-///
-/// # Example
-///
-/// ```no_run
-/// use tatu_server::batch::PacketBatch;
-///
-/// async fn send_handshake_and_login(
-///     stream: &mut tokio::net::TcpStream,
-///     handshake: azalea_protocol::packets::handshake::s_intention::ServerboundIntention,
-///     hello: azalea_protocol::packets::login::s_hello::ServerboundHello,
-/// ) -> std::io::Result<()> {
-///     PacketBatch::new()
-///         .add(handshake)?
-///         .add(hello)?
-///         .write(stream)
-///         .await
-/// }
-/// ```
 pub struct PacketBatch {
     buffer: Vec<u8>,
 }
