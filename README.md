@@ -23,3 +23,8 @@ This is a reference implementation as a Rust proxy. Protocol could be implemente
   - [ ] Fast Noise KK for known servers
 - [ ] Session resumption
 - [ ] Heterogeneous reliability
+
+### Known bugs
+
+- [ ] Sometimes, replicated only twice--once on long-distance teleportation and immediately on login--we get `Connection handler error: Noise encrypt: input error`.
+- [ ] Server prints "Connection handler error: unexpected end of file" instead of player left.

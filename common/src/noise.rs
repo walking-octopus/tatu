@@ -5,7 +5,7 @@ use std::io;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 // Noise protocol hard limit: 65535 bytes per message
-const MAX_NOISE_PLAINTEXT: usize = 65535;
+const MAX_NOISE_PLAINTEXT: usize = 65535 - NOISE_TAG_LEN; // cargo cult; hope this works
 
 // Noise ChaChaPoly adds 16 bytes MAC tag to each message
 const NOISE_TAG_LEN: usize = 16;
