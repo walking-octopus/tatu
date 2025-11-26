@@ -87,7 +87,17 @@ async fn main() -> anyhow::Result<()> {
         let server_key = server_key.clone();
         tokio::spawn(async move {
             if let Err(e) = handle_connection(stream, &proxy_addr, &server_key).await {
-                error!("Connection handler error: {e}");
+                // Distinguish between normal disconnects and actual errors
+                match e.downcast_ref::<std::io::Error>() {
+                    Some(io_err) if io_err.kind() == std::io::ErrorKind::UnexpectedEof
+                                 || io_err.kind() == std::io::ErrorKind::ConnectionReset
+                                 || io_err.kind() == std::io::ErrorKind::BrokenPipe => {
+                        // Normal disconnect, already logged in handle_connection
+                    }
+                    _ => {
+                        error!("Connection handler error: {e}");
+                    }
+                }
             }
         });
     }
@@ -215,10 +225,19 @@ async fn handle_connection(
 
     // Forward all subsequent traffic bidirectionally through transparent Noise encryption
     // noise_stream <-> backend (plaintext Minecraft)
-    noise_stream.copy_bidirectional(&mut backend).await?;
-
-    info!("Connection from {} closed", identity);
-    Ok(())
+    match noise_stream.copy_bidirectional(&mut backend).await {
+        Ok(()) => {
+            info!("Connection from {} closed cleanly", identity);
+            Ok(())
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof
+               || e.kind() == std::io::ErrorKind::ConnectionReset
+               || e.kind() == std::io::ErrorKind::BrokenPipe => {
+            info!("Connection from {} closed", identity);
+            Ok(())
+        }
+        Err(e) => Err(e.into()),
+    }
 }
 
 async fn read_varint<R: tokio::io::AsyncRead + Unpin>(reader: &mut R) -> std::io::Result<i32> {

@@ -4,3 +4,5 @@ tatu-id.key
 tatu-nicks
 tatu-server.key
 tatu-servers.pin
+
+*.pcap
