@@ -9,17 +9,20 @@ This is a reference implementation as a Rust proxy. Protocol could be implemente
 
 ## Status
 
-- [x] Identity:
-  - [x] Nick#disc handles
-  - [x] Static UUIDs
-  - [ ] Skin/cape uploads (needs specification)
-- [x] Authentication:
+**Identity**:
+- [x] nick#disc timelocked handles
+- [x] Persistent UUIDs w/ BungeeCord UUID forwarding
+- [ ] Player skins (awaiting specification)
+
+**Security**:
+- [x] Noise_XX handshake
   - [x] Client authentication
-  - [x] Server identity, pinning
-    - [ ] Show server identities in chat
-  - [ ] Handle claim caching
-- [x] Transport encryption:
-  - [x] Noise XX
-  - [ ] Fast Noise KK for known servers
-- [ ] Session resumption
-- [ ] Heterogeneous reliability
+  - [x] Server key pinning (TOFU)
+- [ ] Noise_KK fast handshake
+  - [ ] Server-side handle pinning
+
+**Performance**:
+- [ ] Bundled login/configuration (1-RTT)
+- [ ] Session resumption (1-RTT reconnect)
+  - [ ] Sequence number framing
+
