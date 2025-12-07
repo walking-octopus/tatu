@@ -1,0 +1,21 @@
+[package]
+name = "tatu-server"
+version = "0.2.0"
+edition = "2024"
+
+[dependencies]
+tatu-common = { path = "../common" }
+
+tokio.workspace = true
+futures.workspace = true
+azalea.workspace = true
+bytes.workspace = true
+
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+ed25519.workspace = true
+x25519.workspace = true
+rmp-serde.workspace = true
+once_cell.workspace = true
