@@ -6,7 +6,7 @@ Tatu provides players with a persistent, cross-server identity without relying o
 
 - [x] Identity
     - [x] Weseloski VDF
-    - [x] XEdDSA signing
+    - [x] Ed25519-X25519 binding
     - [x] Discriminator encoding
     - [x] Key files
     - [ ] Recovery phrases

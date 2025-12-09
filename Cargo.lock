@@ -2765,7 +2765,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "x25519-dalek",
 ]
 
 [[package]]
@@ -2777,6 +2776,7 @@ dependencies = [
  "base58",
  "blake2",
  "bytes",
+ "curve25519-dalek",
  "ed25519-dalek",
  "futures",
  "once_cell",
@@ -2804,7 +2804,6 @@ dependencies = [
  "anyhow",
  "azalea",
  "bytes",
- "ed25519-dalek",
  "futures",
  "once_cell",
  "rmp-serde",
@@ -2813,7 +2812,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "x25519-dalek",
 ]
 
 [[package]]

@@ -1,4 +1,6 @@
+use crate::keys::RemoteTatuKey;
 use crate::vdf::VdfProof;
+use anyhow::anyhow;
 use blake2::{
     Blake2b, Digest,
     digest::consts::{U4, U16},
@@ -82,48 +84,34 @@ impl Handle {
 pub struct HandleClaim {
     pub nick: String,
     pub nick_sig: ed25519::Signature,
+    pub sig_key: ed25519::VerifyingKey,
     pub vdf_proof: VdfProof,
 }
 
-// NOTE: Maybe consider replacing XEdDSA with Ed25519 -> X25519
-
-// Its randomness makes backing up handles impossible
-// and faking it will break its DH security.
-
-// It also presents undue burden on the alternative impls,
-// requiring primitives like eligator to even implement.
-
-// The reverse however is possible. We can define our TatuKey (TatuID?) type
-// to have .as_ed25519 and pass/get that in mine/verify, also consolidating
-// some logic like display, while Noise gets the .as_x25519?
-
-// We would preferably include the ed25519 key in the message, or we'd have
-// to check two possible candidates.
-
 impl HandleClaim {
-    pub fn mine(nick: String, key: &x25519::StaticSecret) -> Self {
-        use xeddsa::Sign;
-        use xeddsa::xed25519::PrivateKey;
-
-        let xed_key = PrivateKey::from(key);
-        let nick_sig: ed25519::Signature = xed_key.sign(nick.as_bytes(), rand::rngs::OsRng);
+    pub fn mine(nick: String, sig_key: &ed25519::SigningKey) -> Self {
+        use ed25519::Signer;
+        let nick_sig = sig_key.sign(nick.as_bytes());
 
         // TODO: Validate usernames to not include #, error otherwise.
 
         HandleClaim {
             nick,
             nick_sig,
+            sig_key: sig_key.verifying_key(),
             vdf_proof: VdfProof::mine(&nick_sig.to_bytes()),
         }
     }
 
-    pub fn verify(self, key: &x25519::PublicKey) -> anyhow::Result<Handle> {
-        use xeddsa::Verify;
-        use xeddsa::xed25519::PublicKey;
+    pub fn verify(self, x_pub: &x25519::PublicKey) -> anyhow::Result<Handle> {
+        use ed25519::Verifier;
+        self.sig_key.verify(self.nick.as_bytes(), &self.nick_sig)?;
 
-        let xed_key = PublicKey::from(key);
+        let signer = RemoteTatuKey::from_ed_pub(&self.sig_key);
+        if signer.x_pub() != x_pub {
+            return Err(anyhow!("sig key unbound from auth key!"));
+        }
 
-        xed_key.verify(self.nick.as_bytes(), &self.nick_sig)?;
         self.vdf_proof.verify(&self.nick_sig.to_bytes())?;
 
         let seed = [

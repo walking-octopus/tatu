@@ -15,7 +15,5 @@ anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
-ed25519.workspace = true
-x25519.workspace = true
 rmp-serde.workspace = true
 once_cell.workspace = true

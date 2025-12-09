@@ -92,6 +92,26 @@ impl std::fmt::Display for TatuKey {
 // NOTE: How do I print these to server operator on first launch without getting them logged?
 // The client side should probably interactively ask to input 2 random nths to verify you wrote down the phrase
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ed25519::{Signer, Verifier};
+
+    #[test]
+    fn test_xed_binding() {
+        let key = TatuKey::generate(rand::rngs::OsRng);
+
+        let ed_pub = key.ed_pub();
+        let x_pub = key.x_pub();
+        let sig = key.ed_key().sign(b"test message");
+
+        let derived_id = RemoteTatuKey::from_ed_pub(&ed_pub);
+        assert_eq!(derived_id.x_pub().as_bytes(), x_pub.as_bytes());
+
+        assert!(ed_pub.verify(b"test message", &sig).is_ok());
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RemoteTatuKey(PublicKey);
 
@@ -100,11 +120,19 @@ impl RemoteTatuKey {
         Self(key)
     }
 
+    pub fn from_ed_pub(ed_pub: &VerifyingKey) -> Self {
+        use curve25519::edwards::CompressedEdwardsY;
+        let compressed = CompressedEdwardsY::from_slice(ed_pub.as_bytes()).unwrap();
+        let point = compressed.decompress().unwrap();
+        let montgomery = point.to_montgomery();
+        Self(PublicKey::from(*montgomery.as_bytes()))
+    }
+
     pub fn from_base58(s: &str) -> Result<Self, KeyError> {
         base58_pubkey(s).map(Self)
     }
 
-    pub fn as_x_pub(&self) -> &PublicKey {
+    pub fn x_pub(&self) -> &PublicKey {
         &self.0
     }
 }

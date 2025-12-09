@@ -106,13 +106,13 @@ impl<'a> Keychain<'a> {
                     Err(_) => {
                         tracing::warn!("Invalid handle claim found for '{}', remining...", nick);
                         fs::remove_file(&file_path)?;
-                        HandleClaim::mine(nick.to_string(), &self.identity.x_key())
+                        HandleClaim::mine(nick.to_string(), &self.identity.ed_key())
                     }
                 }
             }
             false => {
                 tracing::info!("Mining new handle claim for '{}'...", nick);
-                HandleClaim::mine(nick.to_string(), &self.identity.x_key())
+                HandleClaim::mine(nick.to_string(), &self.identity.ed_key())
             }
         };
 

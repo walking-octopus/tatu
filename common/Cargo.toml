@@ -5,8 +5,10 @@ edition = "2024"
 
 [dependencies]
 ed25519 = { workspace = true, features = ["serde"] }
+curve25519 = { package = "curve25519-dalek", version = "4.1" }
 x25519.workspace = true
 xeddsa = "1.0"
+
 
 blake2 = "0.10"
 sha2 = "0.10"
