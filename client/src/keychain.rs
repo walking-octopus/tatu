@@ -98,13 +98,17 @@ impl<'a> Keychain<'a> {
         let claim = match file_path.exists() {
             true => {
                 let data = fs::read(&file_path)?;
-                let claim: HandleClaim = rmp_serde::from_slice(&data)
-                    .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-
-                match claim.clone().verify(&public_key) {
-                    Ok(_) => claim,
-                    Err(_) => {
-                        tracing::warn!("Invalid handle claim found for '{}', remining...", nick);
+                match rmp_serde::from_slice::<HandleClaim>(&data) {
+                    Ok(claim) => match claim.clone().verify(&public_key) {
+                        Ok(_) => claim,
+                        Err(_) => {
+                            tracing::warn!("Handle claim for '{}' failed verification, remining...", nick);
+                            fs::remove_file(&file_path)?;
+                            HandleClaim::mine(nick.to_string(), &self.identity.ed_key())
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!("Corrupt handle cache for '{}': {}, remining...", nick, e);
                         fs::remove_file(&file_path)?;
                         HandleClaim::mine(nick.to_string(), &self.identity.ed_key())
                     }
