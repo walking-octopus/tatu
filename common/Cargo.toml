@@ -4,20 +4,20 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-ed25519 = { workspace = true, features = ["serde"] }
+ed25519 = { package = "ed25519-dalek", version = "2", features = ["serde"] }
 curve25519 = { package = "curve25519-dalek", version = "4.1" }
-x25519.workspace = true
-xeddsa = "1.0"
-
+x25519 = { package = "x25519-dalek", version = "2", features = ["static_secrets"] }
 
 blake2 = "0.10"
 sha2 = "0.10"
-zeroize = "1.8.2"
-rug = { version = "1.28", default-features = false, features = ["integer", "std", "serde"] } # consider crypto-bigint/crypto-primes
 snow = { version = "0.10", default-features = false, features = [ "use-curve25519", "use-chacha20poly1305", "use-blake2", "use-getrandom" ] }
-rand.workspace = true
+# consider crypto-bigint/crypto-primes
+rug = { version = "1.28", default-features = false, features = ["integer", "std", "serde"] }
 
 azalea.workspace = true
+
+zeroize = "1.8.2"
+rand = "0.8"
 
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11"

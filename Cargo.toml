@@ -5,16 +5,12 @@ resolver = "3"
 [profile.dev]
 opt-level = 1
 
-# NOTE: Without -O3, slow decrypts accumulate to create buffer bloat, causing a lag spike up to 2000~500 ms on chunk loading
-
+# NOTE: Without -O3, slow decrypts create buffer bloat,
+# lag spiking up to 500~2000 ms on chunk loading
 [profile.dev.package."*"]
 opt-level = 3
 
 [workspace.dependencies]
-ed25519 = { package = "ed25519-dalek", version = "2" }
-x25519 = { package = "x25519-dalek", version = "2" }
-rand = "0.8"
-
 tokio = { version = "1.48" }
 tokio-util = { version = "0.7", features = ["codec"] }
 futures = "0.3"

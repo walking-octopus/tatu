@@ -162,7 +162,7 @@ dependencies = [
  "bevy_app",
  "bevy_ecs",
  "bevy_tasks",
- "derive_more 2.1.0",
+ "derive_more",
  "futures",
  "futures-lite",
  "indexmap",
@@ -292,7 +292,7 @@ dependencies = [
  "bevy_tasks",
  "bevy_time",
  "chrono",
- "derive_more 2.1.0",
+ "derive_more",
  "indexmap",
  "minecraft_folder_path",
  "parking_lot",
@@ -357,7 +357,7 @@ dependencies = [
  "azalea-world",
  "bevy_app",
  "bevy_ecs",
- "derive_more 2.1.0",
+ "derive_more",
  "enum-as-inner",
  "nohash-hasher",
  "parking_lot",
@@ -495,7 +495,7 @@ dependencies = [
  "azalea-core",
  "azalea-registry",
  "bevy_ecs",
- "derive_more 2.1.0",
+ "derive_more",
  "nohash-hasher",
  "parking_lot",
  "rustc-hash",
@@ -574,7 +574,7 @@ dependencies = [
  "bitflags",
  "bumpalo",
  "concurrent-queue",
- "derive_more 2.1.0",
+ "derive_more",
  "fixedbitset",
  "indexmap",
  "log",
@@ -647,7 +647,7 @@ dependencies = [
  "bevy_ptr",
  "bevy_reflect_derive",
  "bevy_utils",
- "derive_more 2.1.0",
+ "derive_more",
  "disqualified",
  "downcast-rs",
  "erased-serde",
@@ -689,7 +689,7 @@ dependencies = [
  "bevy_platform",
  "concurrent-queue",
  "crossbeam-queue",
- "derive_more 2.1.0",
+ "derive_more",
  "futures-lite",
  "heapless",
  "pin-project",
@@ -1118,17 +1118,6 @@ dependencies = [
  "const-oid 0.10.1",
  "pem-rfc7468",
  "zeroize",
-]
-
-[[package]]
-name = "derive_more"
-version = "0.99.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2758,7 +2747,6 @@ dependencies = [
  "bytes",
  "futures",
  "once_cell",
- "rand 0.8.5",
  "rmp-serde",
  "tatu-common",
  "thiserror 2.0.17",
@@ -2793,7 +2781,6 @@ dependencies = [
  "tracing",
  "uuid",
  "x25519-dalek",
- "xeddsa",
  "zeroize",
 ]
 
@@ -3486,22 +3473,6 @@ dependencies = [
  "curve25519-dalek",
  "rand_core 0.6.4",
  "serde",
- "zeroize",
-]
-
-[[package]]
-name = "xeddsa"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2460c9a9c9d1331ff6801e87badb517faa6b6758e5fb585eb27daf7622c6d5ad"
-dependencies = [
- "curve25519-dalek",
- "derive_more 0.99.20",
- "ed25519",
- "ed25519-dalek",
- "rand 0.8.5",
- "sha2 0.10.9",
- "x25519-dalek",
  "zeroize",
 ]
 
