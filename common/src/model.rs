@@ -103,7 +103,7 @@ impl HandleClaim {
         }
     }
 
-    pub fn verify(self, x_pub: &x25519::PublicKey) -> anyhow::Result<Handle> {
+    pub fn verify(&self, x_pub: &x25519::PublicKey) -> anyhow::Result<Handle> {
         use ed25519::Verifier;
         self.sig_key.verify(self.nick.as_bytes(), &self.nick_sig)?;
 
@@ -120,7 +120,7 @@ impl HandleClaim {
             &self.vdf_proof.y.to_digits(rug::integer::Order::MsfBe)[..],
         ]
         .concat();
-        Ok(Handle::from(self.nick, seed))
+        Ok(Handle::from(self.nick.clone(), seed))
     }
 }
 

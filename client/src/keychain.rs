@@ -100,7 +100,7 @@ impl Keychain {
             true => {
                 let data = fs::read(&file_path)?;
                 match rmp_serde::from_slice::<HandleClaim>(&data) {
-                    Ok(claim) => match claim.clone().verify(&public_key) {
+                    Ok(claim) => match claim.verify(&public_key) {
                         Ok(_) => claim,
                         Err(_) => {
                             tracing::warn!(
