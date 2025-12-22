@@ -18,3 +18,5 @@ rmp-serde.workspace = true
 thiserror.workspace = true
 base58.workspace = true
 once_cell.workspace = true
+
+clap = { version = "4", features = ["derive", "env"] }

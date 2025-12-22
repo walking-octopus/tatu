@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tatu_common::keys::{RemoteTatuKey, TatuKey};
 use tatu_common::model::HandleClaim;
 use thiserror::Error;
@@ -14,17 +15,17 @@ pub enum PinError {
     Mismatch,
 }
 
-pub struct Keychain<'a> {
-    pub identity: &'a TatuKey,
+pub struct Keychain {
+    pub identity: Arc<TatuKey>,
     known_servers: HashMap<String, RemoteTatuKey>,
 
     handles_dir: PathBuf,
     servers_path: PathBuf,
 }
 
-impl<'a> Keychain<'a> {
+impl Keychain {
     pub fn new(
-        master_key: &'a TatuKey,
+        identity: Arc<TatuKey>,
         handles_dir: impl Into<PathBuf>,
         servers_path: impl Into<PathBuf>,
     ) -> io::Result<Self> {
@@ -32,14 +33,14 @@ impl<'a> Keychain<'a> {
         let known_servers = Self::load_pins(&servers_path)?;
 
         Ok(Keychain {
-            identity: master_key,
+            identity,
             known_servers,
             handles_dir: handles_dir.into(),
             servers_path,
         })
     }
 
-    fn load_pins(path: &PathBuf) -> io::Result<HashMap<String, RemoteTatuKey>> {
+    fn load_pins(path: &Path) -> io::Result<HashMap<String, RemoteTatuKey>> {
         let mut pins = HashMap::new();
         if !path.exists() {
             return Ok(pins);
