@@ -30,7 +30,7 @@ bytes.workspace = true
 
 base58.workspace = true
 uuid.workspace = true
-once_cell.workspace = true
+once_cell = "1.21"
 thiserror.workspace = true
 tracing.workspace = true
 anyhow.workspace = true

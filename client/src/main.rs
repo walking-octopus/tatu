@@ -28,10 +28,18 @@ struct Args {
     #[arg(long = "key", env = "TATU_KEY", default_value = "tatu-id.key")]
     key_path: PathBuf,
 
-    #[arg(long = "handles", env = "TATU_HANDLE_CACHE", default_value = "tatu-handles")]
+    #[arg(
+        long = "handles",
+        env = "TATU_HANDLE_CACHE",
+        default_value = "tatu-handles"
+    )]
     handles_path: PathBuf,
 
-    #[arg(long = "known-servers", env = "TATU_KNOWN_SERVERS", default_value = "tatu-servers.pin")]
+    #[arg(
+        long = "known-servers",
+        env = "TATU_KNOWN_SERVERS",
+        default_value = "tatu-servers.pin"
+    )]
     known_servers_path: PathBuf,
 }
 
