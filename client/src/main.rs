@@ -101,6 +101,26 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+async fn inject_message(
+    mc_write: &mut azalea::protocol::connect::RawWriteConnection,
+    message: &str,
+) -> anyhow::Result<()> {
+    use azalea::FormattedText;
+    use azalea::protocol::{
+        packets::game::{ClientboundGamePacket, c_system_chat::ClientboundSystemChat},
+        write::serialize_packet,
+    };
+
+    let formatted_text: FormattedText = message.into();
+    let game_packet = ClientboundGamePacket::SystemChat(ClientboundSystemChat {
+        content: formatted_text,
+        overlay: false,
+    });
+    let bytes = serialize_packet(&game_packet)?;
+    mc_write.write(&bytes).await?;
+    Ok(())
+}
+
 async fn handle_client(stream: TcpStream, rt: &Runtime) -> anyhow::Result<()> {
     let (mc_read, mc_write, nick) = read_mc_login(stream).await?;
     tracing::info!("Connecting as {nick}");
@@ -113,24 +133,39 @@ async fn handle_client(stream: TcpStream, rt: &Runtime) -> anyhow::Result<()> {
 
     let server_key = RemoteTatuKey::from_x_pub(secure_pipe.remote_public_key()?);
 
-    let handle_claim = {
+    let (handle_claim, chat_message) = {
         let mut keychain = rt.keychain.lock().await;
 
-        match keychain.id_server(&rt.proxy_addr, &server_key) {
+        let message = match keychain.id_server(&rt.proxy_addr, &server_key) {
             Ok(()) => {
                 tracing::info!("Server key verified");
+                None
             }
             Err(keychain::PinError::NotKnown) => {
                 tracing::warn!("Server not known, pinning key: {server_key}");
                 keychain.pin_server(rt.proxy_addr.clone(), server_key)?;
                 tracing::info!("Verify this key through a trusted channel!");
+
+                fn chunked_key(key: String) -> String {
+                    key.chars()
+                    .collect::<Vec<_>>()
+                    .chunks(11)
+                    .map(|c| c.iter().collect::<String>())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+                }
+
+                Some(format!(
+                    "§6tatu: new server saved:\n§e{}\n§6tatu: it should match the key outside the game!",
+                    chunked_key(server_key.to_string())
+                ))
             }
             Err(keychain::PinError::Mismatch) => {
                 anyhow::bail!("Server key mismatch! Potential MITM attack detected");
             }
-        }
+        };
 
-        keychain.get_handle(&nick)?
+        (keychain.get_handle(&nick)?, message)
     };
 
     let auth_msg = tatu_common::model::AuthMessage {
@@ -143,6 +178,16 @@ async fn handle_client(stream: TcpStream, rt: &Runtime) -> anyhow::Result<()> {
         .await?;
 
     tracing::info!("Connected to proxy server");
+
+    let (mc_read, mut mc_write, secure_pipe) =
+        wait_for_game_state(mc_read, mc_write, secure_pipe).await?;
+
+    if let Some(message) = chat_message {
+        if let Err(e) = inject_message(&mut mc_write, &message).await {
+            tracing::warn!("Failed to inject chat message: {e}");
+        }
+    }
+
     let result = forward_messages(mc_read, mc_write, secure_pipe).await;
     tracing::info!("Disconnected");
 
@@ -201,10 +246,48 @@ async fn read_mc_login(
     let mut nick = hello.name.clone();
     nick.truncate(MAX_NICK_LENGTH);
 
+    // Return raw connections immediately - can't transition to game state
+    // because the client hasn't received login success yet (that comes from the real server)
     let (read, write) = conn.into_split_raw();
     Ok((read, write, nick))
 }
 
+/// Wait for the Minecraft client and server to complete protocol negotiation
+/// and reach game state. Returns the connections when ready for game packets.
+async fn wait_for_game_state(
+    mut mc_read: azalea::protocol::connect::RawReadConnection,
+    mut mc_write: azalea::protocol::connect::RawWriteConnection,
+    proxy: NoisePipe<TcpStream>,
+) -> anyhow::Result<(
+    azalea::protocol::connect::RawReadConnection,
+    azalea::protocol::connect::RawWriteConnection,
+    NoisePipe<TcpStream>,
+)> {
+    let (mut proxy_sink, mut proxy_stream) = proxy.split();
+
+    let config_finished = wait_for_login(
+        &mut mc_read,
+        &mut mc_write,
+        &mut proxy_sink,
+        &mut proxy_stream,
+    )
+    .await?;
+
+    if config_finished {
+        wait_for_game_start(
+            &mut mc_read,
+            &mut mc_write,
+            &mut proxy_sink,
+            &mut proxy_stream,
+        )
+        .await?;
+    }
+
+    let proxy = proxy_sink.reunite(proxy_stream)?;
+    Ok((mc_read, mc_write, proxy))
+}
+
+/// Transparent bidirectional forwarding between Minecraft client and proxy server
 async fn forward_messages(
     mut mc_read: azalea::protocol::connect::RawReadConnection,
     mut mc_write: azalea::protocol::connect::RawWriteConnection,
@@ -239,4 +322,129 @@ async fn forward_messages(
     }
 
     Ok(())
+}
+
+async fn wait_for_login(
+    mc_read: &mut azalea::protocol::connect::RawReadConnection,
+    mc_write: &mut azalea::protocol::connect::RawWriteConnection,
+    proxy_sink: &mut futures::stream::SplitSink<NoisePipe<TcpStream>, Bytes>,
+    proxy_stream: &mut futures::stream::SplitStream<NoisePipe<TcpStream>>,
+) -> anyhow::Result<bool> {
+    use azalea::protocol::{
+        packets::{
+            config::{ClientboundConfigPacket, ServerboundConfigPacket},
+            login::{ClientboundLoginPacket, ServerboundLoginPacket},
+        },
+        read::deserialize_packet,
+    };
+
+    let mut login_finished_sent = false;
+    let mut in_config_phase = false;
+    let mut config_finished_sent = false;
+
+    loop {
+        tokio::select! {
+            mc_msg = mc_read.read() => {
+                match mc_msg {
+                    Ok(bytes) => {
+                        if login_finished_sent && !in_config_phase {
+                            let mut cursor = std::io::Cursor::new(&bytes[..]);
+                            if let Ok(packet) = deserialize_packet::<ServerboundLoginPacket>(&mut cursor) {
+                                if matches!(packet, ServerboundLoginPacket::LoginAcknowledged(_)) {
+                                    proxy_sink.send(Bytes::from(bytes)).await?;
+                                    proxy_sink.flush().await?;
+                                    in_config_phase = true;
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if in_config_phase && config_finished_sent {
+                            let mut cursor = std::io::Cursor::new(&bytes[..]);
+                            if let Ok(packet) = deserialize_packet::<ServerboundConfigPacket>(&mut cursor) {
+                                if matches!(packet, ServerboundConfigPacket::FinishConfiguration(_)) {
+                                    proxy_sink.send(Bytes::from(bytes)).await?;
+                                    proxy_sink.flush().await?;
+                                    return Ok(true);
+                                }
+                            }
+                        }
+
+                        proxy_sink.send(Bytes::from(bytes)).await?;
+                        proxy_sink.flush().await?;
+                    }
+                    Err(e) => return Err(e.into()),
+                }
+            }
+            proxy_msg = proxy_stream.next() => {
+                match proxy_msg {
+                    Some(Ok(bytes)) => {
+                        if !login_finished_sent {
+                            let mut cursor = std::io::Cursor::new(&bytes[..]);
+                            if let Ok(packet) = deserialize_packet::<ClientboundLoginPacket>(&mut cursor) {
+                                if matches!(packet, ClientboundLoginPacket::LoginFinished(_)) {
+                                    mc_write.write(&bytes).await?;
+                                    login_finished_sent = true;
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if in_config_phase && !config_finished_sent {
+                            let mut cursor = std::io::Cursor::new(&bytes[..]);
+                            if let Ok(packet) = deserialize_packet::<ClientboundConfigPacket>(&mut cursor) {
+                                if matches!(packet, ClientboundConfigPacket::FinishConfiguration(_)) {
+                                    mc_write.write(&bytes).await?;
+                                    config_finished_sent = true;
+                                    continue;
+                                }
+                            }
+                        }
+
+                        mc_write.write(&bytes).await?;
+                    }
+                    Some(Err(e)) => return Err(e.into()),
+                    None => return Ok(false),
+                }
+            }
+        }
+    }
+}
+
+async fn wait_for_game_start(
+    mc_read: &mut azalea::protocol::connect::RawReadConnection,
+    mc_write: &mut azalea::protocol::connect::RawWriteConnection,
+    proxy_sink: &mut futures::stream::SplitSink<NoisePipe<TcpStream>, Bytes>,
+    proxy_stream: &mut futures::stream::SplitStream<NoisePipe<TcpStream>>,
+) -> anyhow::Result<bool> {
+    use azalea::protocol::{packets::game::ClientboundGamePacket, read::deserialize_packet};
+
+    loop {
+        tokio::select! {
+            mc_msg = mc_read.read() => {
+                match mc_msg {
+                    Ok(bytes) => {
+                        proxy_sink.send(Bytes::from(bytes)).await?;
+                        proxy_sink.flush().await?;
+                    }
+                    Err(e) => return Err(e.into()),
+                }
+            }
+            proxy_msg = proxy_stream.next() => {
+                match proxy_msg {
+                    Some(Ok(bytes)) => {
+                        let mut cursor = std::io::Cursor::new(&bytes[..]);
+                        if deserialize_packet::<ClientboundGamePacket>(&mut cursor).is_ok() {
+                            mc_write.write(&bytes).await?;
+                            return Ok(true);
+                        }
+
+                        mc_write.write(&bytes).await?;
+                    }
+                    Some(Err(e)) => return Err(e.into()),
+                    None => return Ok(false),
+                }
+            }
+        }
+    }
 }
