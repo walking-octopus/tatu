@@ -17,8 +17,8 @@ Tatu provides players with a persistent, friendly cross-server identity without 
 - [x] MessagePack wire
 - [x] BungeeCord forwarding, Minecraft packet rewriting
     - [x] Skins
-    - [ ] Client errors as Minecraft connection errors
-    - [x] Server key indication in chat messages
+    - [x] Server error injection
+    - [x] Server key indication in chat
     - [ ] Arbitrary Minecraft protocol version
     - [ ] FML handshake
 - [ ] Specify v1 protocol

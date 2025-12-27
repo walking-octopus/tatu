@@ -94,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
         let runtime = Arc::clone(&runtime);
         tokio::spawn(async move {
-            if let Err(e) = handle_client(stream, &runtime).await {
+            if let Err(e) = handle_client(stream, runtime).await {
                 tracing::error!("Connection error: {e}");
             }
         });
@@ -121,9 +121,51 @@ async fn inject_message(
     Ok(())
 }
 
-async fn handle_client(stream: TcpStream, rt: &Runtime) -> anyhow::Result<()> {
-    let (mc_read, mc_write, nick) = read_mc_login(stream).await?;
+async fn send_disconnect(
+    mc_write: &mut azalea::protocol::connect::RawWriteConnection,
+    message: &str,
+) -> anyhow::Result<()> {
+    use azalea::FormattedText;
+    use azalea::protocol::{
+        packets::login::{ClientboundLoginPacket, c_login_disconnect::ClientboundLoginDisconnect},
+        write::serialize_packet,
+    };
+
+    let formatted_text: FormattedText = message.into();
+    let disconnect_packet = ClientboundLoginPacket::LoginDisconnect(ClientboundLoginDisconnect {
+        reason: formatted_text,
+    });
+    let bytes = serialize_packet(&disconnect_packet)?;
+    mc_write.write(&bytes).await?;
+    Ok(())
+}
+
+async fn handle_client(stream: TcpStream, rt: Arc<Runtime>) -> anyhow::Result<()> {
+    let (mc_read, mut mc_write, nick) = read_mc_login(stream).await?;
     tracing::info!("Connecting as {nick}");
+
+    // Check if handle is cached before proceeding
+    if !rt.keychain.lock().await.is_handle_cached(&nick) {
+        tracing::info!("Handle not cached for '{}', mining...", nick);
+        send_disconnect(
+            &mut mc_write,
+            "§6Mining your handle discriminator...
+
+§7This should take 40 seconds, once per nick.
+§7Reconnect after it's done.",
+        )
+        .await?;
+
+        // Mine synchronously (blocks this connection task)
+        let rt_clone = Arc::clone(&rt);
+        let nick_clone = nick.clone();
+        tokio::task::spawn_blocking(move || {
+            rt_clone.keychain.blocking_lock().get_handle(&nick_clone)
+        }).await??;
+
+        tracing::info!("Handle mined for '{}'", nick);
+        return Ok(());
+    }
 
     let tcp_stream = TcpStream::connect(&rt.proxy_addr).await?;
     tcp_stream.set_nodelay(true)?;
@@ -161,6 +203,19 @@ async fn handle_client(stream: TcpStream, rt: &Runtime) -> anyhow::Result<()> {
                 ))
             }
             Err(keychain::PinError::Mismatch) => {
+                send_disconnect(
+                    &mut mc_write,
+                    "§cPossible server impersonation!
+§7This server's identity is different from before.
+
+It may have changed owners, lost its keys,
+or recovered from a breach—or you are
+being wiretapped.
+
+§6If you know why it happened, delete it from
+tatu-servers.pin",
+                )
+                .await?;
                 anyhow::bail!("Server key mismatch! Potential MITM attack detected");
             }
         };

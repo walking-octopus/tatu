@@ -92,6 +92,27 @@ impl Keychain {
         fs::write(&self.servers_path, content)
     }
 
+    pub fn is_handle_cached(&self, nick: &str) -> bool {
+        let file_path = self.handles_dir.join(format!("{}.nick", nick));
+
+        if !file_path.exists() {
+            return false;
+        }
+
+        // Validate the cached handle
+        let public_key = self.identity.x_pub();
+        if let Ok(data) = fs::read(&file_path) {
+            if let Ok(claim) = rmp_serde::from_slice::<HandleClaim>(&data) {
+                if claim.verify(&public_key).is_ok() {
+                    return true;
+                }
+                // Invalid claim - remove it
+                let _ = fs::remove_file(&file_path);
+            }
+        }
+        false
+    }
+
     pub fn get_handle(&self, nick: &str) -> io::Result<HandleClaim> {
         let file_path = self.handles_dir.join(format!("{}.nick", nick));
         let public_key = self.identity.x_pub();
