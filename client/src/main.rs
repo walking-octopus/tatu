@@ -26,7 +26,6 @@ const MAX_NICK_LENGTH: usize = 7;
 #[derive(Parser)]
 #[command(about = "Tatu client proxy")]
 struct Args {
-    #[arg(default_value = "127.0.0.1:25519")]
     proxy_addr: String,
 
     #[arg(long, default_value = "127.0.0.1:25565")]
