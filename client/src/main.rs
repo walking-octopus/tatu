@@ -32,22 +32,14 @@ struct Args {
     #[arg(long = "skin")]
     skin_path: Option<PathBuf>,
 
-    #[arg(long = "key", env = "TATU_KEY", default_value = "tatu-id.key")]
-    key_path: PathBuf,
+    #[arg(long = "key", env = "TATU_KEY")]
+    key_path: Option<PathBuf>,
 
-    #[arg(
-        long = "handles",
-        env = "TATU_HANDLE_CACHE",
-        default_value = "tatu-handles"
-    )]
-    handles_path: PathBuf,
+    #[arg(long = "handles", env = "TATU_HANDLE_CACHE")]
+    handles_path: Option<PathBuf>,
 
-    #[arg(
-        long = "known-servers",
-        env = "TATU_KNOWN_SERVERS",
-        default_value = "tatu-servers.pin"
-    )]
-    known_servers_path: PathBuf,
+    #[arg(long = "known-servers", env = "TATU_KNOWN_SERVERS")]
+    known_servers_path: Option<PathBuf>,
 }
 
 struct Runtime {
@@ -56,10 +48,35 @@ struct Runtime {
     keychain: Arc<Keychain>,
 }
 
+fn resolve_paths(args: &Args) -> (PathBuf, PathBuf, PathBuf) {
+    let data_dir = dirs::data_dir().unwrap_or_else(|| PathBuf::from(".local/share"));
+    let cache_dir = dirs::cache_dir().unwrap_or_else(|| PathBuf::from(".cache"));
+    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from(".config"));
+
+    let key_path = args
+        .key_path
+        .clone()
+        .unwrap_or_else(|| data_dir.join("tatu/identity.key"));
+
+    let handles_path = args
+        .handles_path
+        .clone()
+        .unwrap_or_else(|| cache_dir.join("tatu/handles"));
+
+    let known_servers_path = args
+        .known_servers_path
+        .clone()
+        .unwrap_or_else(|| config_dir.join("tatu/known-servers.pin"));
+
+    (key_path, handles_path, known_servers_path)
+}
+
 impl Runtime {
     fn load(args: &Args) -> anyhow::Result<Self> {
-        let identity = Arc::new(TatuKey::load_or_generate(&args.key_path)?);
-        let keychain = Keychain::new(identity, &args.handles_path, &args.known_servers_path)?;
+        let (key_path, handles_path, known_servers_path) = resolve_paths(args);
+
+        let identity = Arc::new(TatuKey::load_or_generate(&key_path)?);
+        let keychain = Keychain::new(identity, &handles_path, &known_servers_path)?;
 
         let skin = args
             .skin_path

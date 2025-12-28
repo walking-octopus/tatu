@@ -18,3 +18,4 @@ rmp-serde.workspace = true
 thiserror.workspace = true
 base58.workspace = true
 clap.workspace = true
+dirs = "5.0"
