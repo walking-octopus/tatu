@@ -9,7 +9,7 @@ use futures::{SinkExt, StreamExt};
 use keychain::Keychain;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tatu_common::keys::{RemoteTatuKey, TatuKey};
+use tatu_common::keys::{RecoveryPhrase, RemoteTatuKey, TatuKey};
 use tatu_common::noise::NoisePipe;
 use tokio::net::{TcpListener, TcpStream};
 
@@ -40,12 +40,16 @@ struct Args {
 
     #[arg(long = "known-servers", env = "TATU_KNOWN_SERVERS")]
     known_servers_path: Option<PathBuf>,
+
+    #[arg(long = "recover", help = "Recover identity from recovery phrase")]
+    recover: bool,
 }
 
 struct Runtime {
     proxy_addr: String,
     skin: Option<Arc<str>>,
     keychain: Arc<Keychain>,
+    recovery_phrase: Option<RecoveryPhrase>,
 }
 
 fn resolve_paths(args: &Args) -> (PathBuf, PathBuf, PathBuf) {
@@ -75,7 +79,21 @@ impl Runtime {
     fn load(args: &Args) -> anyhow::Result<Self> {
         let (key_path, handles_path, known_servers_path) = resolve_paths(args);
 
-        let identity = Arc::new(TatuKey::load_or_generate(&key_path)?);
+        let recovery_phrase_input = if args.recover {
+            if key_path.exists() {
+                anyhow::bail!(
+                    "Cannot recover: key file already exists at {}",
+                    key_path.display()
+                );
+            }
+            Some(recovery_prompt()?)
+        } else {
+            None
+        };
+
+        let (identity, recovery_phrase) =
+            TatuKey::load_or_generate(&key_path, recovery_phrase_input.as_ref())?;
+        let identity = Arc::new(identity);
         let keychain = Keychain::new(identity, &handles_path, &known_servers_path)?;
 
         let skin = args
@@ -91,24 +109,9 @@ impl Runtime {
             proxy_addr: args.proxy_addr.clone(),
             skin,
             keychain: Arc::new(keychain),
+            recovery_phrase,
         })
     }
-}
-
-fn prob_json(s: String) -> anyhow::Result<String> {
-    let t = s.trim();
-
-    if !t.starts_with('{') && !t.starts_with('[') {
-        anyhow::bail!("Not JSON given");
-    }
-    if !t.ends_with('}') && !t.ends_with(']') {
-        anyhow::bail!("JSON cut off");
-    }
-    if t.contains('{') && t.contains(':') && !t.contains("\":") {
-        anyhow::bail!("Given SNBT, not JSON (tip: quote the fields)");
-    }
-
-    Ok(s)
 }
 
 #[tokio::main]
@@ -140,6 +143,49 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+fn prob_json(s: String) -> anyhow::Result<String> {
+    let t = s.trim();
+
+    if !t.starts_with('{') && !t.starts_with('[') {
+        anyhow::bail!("Not JSON given");
+    }
+    if !t.ends_with('}') && !t.ends_with(']') {
+        anyhow::bail!("JSON cut off");
+    }
+    if t.contains('{') && t.contains(':') && !t.contains("\":") {
+        anyhow::bail!("Given SNBT, not JSON (tip: quote the fields)");
+    }
+
+    Ok(s)
+}
+
+fn recovery_prompt() -> anyhow::Result<RecoveryPhrase> {
+    use std::io::{self, Write};
+
+    eprintln!("Enter your 12-word recovery phrase (separated by spaces):");
+    eprint!("> ");
+    io::stderr().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+
+    let words: Vec<String> = input
+    .trim()
+    .split_whitespace()
+    .map(|s| s.to_lowercase())
+    .collect();
+
+    if words.len() != 12 {
+        anyhow::bail!("Expected 12 words, got {}", words.len());
+    }
+
+    let phrase: RecoveryPhrase = words
+    .try_into()
+    .map_err(|_| anyhow::anyhow!("Failed to convert to recovery phrase"))?;
+
+    Ok(phrase)
+}
+
 async fn handle_client(stream: TcpStream, rt: Arc<Runtime>) -> anyhow::Result<()> {
     let (mc_conn, nick) = read_mc_login(stream).await?;
     tracing::info!("Connecting as {nick}");
@@ -168,7 +214,7 @@ async fn handle_client(stream: TcpStream, rt: Arc<Runtime>) -> anyhow::Result<()
 
     let server_key = RemoteTatuKey::from_x_pub(secure_pipe.remote_public_key()?);
 
-    let chat_message = {
+    let tofu_message = {
         match rt.keychain.id_server(&rt.proxy_addr, &server_key) {
             Ok(()) => {
                 tracing::info!("Server key verified");
@@ -227,10 +273,36 @@ tatu-servers.pin",
     let (mc_conn, secure_pipe) = await_play(mc_conn, secure_pipe).await?;
     let (mc_read, mut mc_write) = mc_conn;
 
-    if let Some(message) = chat_message
+    if let Some(message) = tofu_message
         && let Err(e) = send_message(&mut mc_write, &message).await
     {
         tracing::warn!("Failed to inject chat message: {e}");
+    }
+
+    if let Some(phrase) = &rt.recovery_phrase {
+        tracing::warn!(
+            "New identity created. Recovery phrase: {}",
+            phrase.join(" ")
+        );
+
+        let mut lines = vec![
+            "§atatu: new identity created".to_string(),
+            "§6tatu: write down your recovery phrase §cNOW§6 (it will be shown only once):"
+                .to_string(),
+        ];
+
+        for (i, chunk) in phrase.chunks(4).enumerate() {
+            let start = i * 4;
+            let end = start + chunk.len() - 1;
+            lines.push(format!("§e{}-{}: {}", start, end, chunk.join("-")));
+        }
+
+        lines.push("§7tatu: without this phrase, you won't be able to recover your account on a new device".to_string());
+
+        let key_message = lines.join("\n");
+        if let Err(e) = send_message(&mut mc_write, &key_message).await {
+            tracing::warn!("Failed to send recovery phrase: {e}");
+        }
     }
 
     let result = forward_messages((mc_read, mc_write), secure_pipe).await;

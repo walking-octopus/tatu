@@ -29,6 +29,9 @@ futures.workspace = true
 bytes.workspace = true
 
 base58.workspace = true
+proquint = "0.1"
+reed-solomon = "0.2"
+
 uuid.workspace = true
 once_cell = "1.21"
 thiserror.workspace = true

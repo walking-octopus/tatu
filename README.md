@@ -11,7 +11,7 @@ Tatu provides players with a persistent, friendly cross-server identity without 
     - [x] Ed25519-X25519 binding
     - [x] Discriminator encoding
     - [x] Key files
-    - [ ] Recovery phrases
+    - [x] Recovery phrases
 - [x] XDG compliance
 - [x] Noise Pipe
     - [x] Server TOFU

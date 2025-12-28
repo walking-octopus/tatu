@@ -1,12 +1,19 @@
 use base58::{FromBase58, ToBase58};
+use blake2::{Blake2s256, Digest};
 use ed25519::{SigningKey, VerifyingKey};
-use sha2::{Digest, Sha512};
+use proquint::Quintable;
+use sha2::Sha512;
 use std::fs;
 use std::io;
 use std::path::Path;
 use thiserror::Error;
 use x25519::{PublicKey, StaticSecret};
 use zeroize::{Zeroize, ZeroizeOnDrop};
+
+const RECOVERY_WORDS: usize = 12;
+const ECC_BYTES: usize = (RECOVERY_WORDS * 2) - 16;
+
+pub type RecoveryPhrase = [String; RECOVERY_WORDS];
 
 #[derive(serde::Serialize, serde::Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct TatuKey {
@@ -15,16 +22,6 @@ pub struct TatuKey {
 }
 
 impl TatuKey {
-    pub fn generate(mut rng: impl rand::CryptoRng + rand::RngCore) -> Self {
-        let mut seed = [0u8; 32];
-        rng.fill_bytes(&mut seed);
-        Self { seed }
-    }
-
-    pub fn from_seed(seed: [u8; 32]) -> Self {
-        Self { seed }
-    }
-
     pub fn ed_key(&self) -> SigningKey {
         SigningKey::from_bytes(&self.seed)
     }
@@ -44,6 +41,36 @@ impl TatuKey {
         PublicKey::from(&self.x_key())
     }
 
+    pub fn load_or_generate(
+        path: &Path,
+        phrase: Option<&RecoveryPhrase>,
+    ) -> Result<(Self, Option<RecoveryPhrase>), KeyError> {
+        if path.exists() {
+            let key = Self::load(path)?;
+            Ok((key, None))
+        } else if let Some(phrase_vec) = phrase {
+            let key = Self::recover(phrase_vec)?;
+            key.save(path)?;
+            Ok((key, None))
+        } else {
+            let (key, phrase_vec) = Self::generate(rand::rngs::OsRng);
+            key.save(path)?;
+            Ok((key, Some(phrase_vec)))
+        }
+    }
+
+    pub fn generate(mut rng: impl rand::CryptoRng + rand::RngCore) -> (Self, RecoveryPhrase) {
+        let mut recovery_seed = [0u8; 16];
+        rng.fill_bytes(&mut recovery_seed);
+
+        let hash = Blake2s256::digest(recovery_seed);
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&hash);
+
+        let phrase = recovery_enc(&recovery_seed);
+        (Self { seed }, phrase)
+    }
+
     pub fn load(path: &Path) -> Result<Self, KeyError> {
         check_permissions(path)?;
         let bytes = fs::read(path)?;
@@ -54,6 +81,9 @@ impl TatuKey {
     }
 
     pub fn save(&self, path: &Path) -> Result<(), KeyError> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(path, self.seed)?;
 
         #[cfg(unix)]
@@ -67,48 +97,20 @@ impl TatuKey {
         Ok(())
     }
 
-    pub fn load_or_generate(path: &Path) -> Result<Self, KeyError> {
-        if path.exists() {
-            Self::load(path)
-        } else {
-            let key = Self::generate(rand::rngs::OsRng);
-            key.save(path)?;
-            Ok(key)
-        }
+    pub fn recover(phrase: &RecoveryPhrase) -> Result<Self, RecoveryError> {
+        let recovery_seed = recovery_dec(phrase)?;
+
+        let hash = Blake2s256::digest(recovery_seed);
+        let mut seed = [0u8; 32];
+        seed.copy_from_slice(&hash);
+
+        Ok(Self { seed })
     }
 }
 
 impl std::fmt::Display for TatuKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.x_pub().as_bytes().to_base58())
-    }
-}
-
-// TODO: Mnemonic backup/recovery (BIP39-style)
-// This would allow users to backup/restore their master key using a 24-word phrase
-// pub fn backup_key(secret: &x25519::StaticSecret) -> [String; 24] { todo!() }
-// pub fn restore_key(words: &[String; 24]) -> Result<x25519::StaticSecret, MnemonicError> { todo!() }
-
-// NOTE: How do I print these to server operator on first launch without getting them logged?
-// The client side should probably interactively ask to input 2 random nths to verify you wrote down the phrase
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ed25519::{Signer, Verifier};
-
-    #[test]
-    fn test_xed_binding() {
-        let key = TatuKey::generate(rand::rngs::OsRng);
-
-        let ed_pub = key.ed_pub();
-        let x_pub = key.x_pub();
-        let sig = key.ed_key().sign(b"test message");
-
-        let derived_id = RemoteTatuKey::from_ed_pub(&ed_pub);
-        assert_eq!(derived_id.x_pub().as_bytes(), x_pub.as_bytes());
-
-        assert!(ed_pub.verify(b"test message", &sig).is_ok());
     }
 }
 
@@ -128,12 +130,23 @@ impl RemoteTatuKey {
         Self(PublicKey::from(*montgomery.as_bytes()))
     }
 
-    pub fn from_base58(s: &str) -> Result<Self, KeyError> {
-        base58_pubkey(s).map(Self)
-    }
-
     pub fn x_pub(&self) -> &PublicKey {
         &self.0
+    }
+
+    pub fn from_base58(s: &str) -> Result<Self, KeyError> {
+        let bytes = s
+            .from_base58()
+            .map_err(|e| KeyError::InvalidBase58(format!("{:?}", e)))?;
+
+        if bytes.len() != 32 {
+            return Err(KeyError::InvalidLength(bytes.len()));
+        }
+
+        let mut key_bytes = [0u8; 32];
+        key_bytes.copy_from_slice(&bytes);
+
+        Ok(Self(x25519::PublicKey::from(key_bytes)))
     }
 }
 
@@ -157,14 +170,14 @@ impl PartialEq<RemoteTatuKey> for TatuKey {
 
 #[derive(Debug, Error)]
 pub enum KeyError {
-    #[error(
-        "Key file has world-accessible permissions (mode: {0:o}). `chmod 600 your.key` to fix."
-    )]
+    #[error("Key file has world-accessible permissions (mode: {0:o}). To fix: chmod 600 your.key")]
     WorldAccessible(u32),
     #[error("Invalid key length: expected 32 bytes, got {0}")]
     InvalidLength(usize),
     #[error("Invalid base58 encoding: {0}")]
     InvalidBase58(String),
+    #[error("Recovery phrase error: {0}")]
+    Recovery(#[from] RecoveryError),
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
 }
@@ -176,20 +189,6 @@ impl From<KeyError> for io::Error {
             other => io::Error::new(io::ErrorKind::InvalidData, other),
         }
     }
-}
-
-pub fn base58_pubkey(s: &str) -> Result<x25519::PublicKey, KeyError> {
-    let bytes = s
-        .from_base58()
-        .map_err(|e| KeyError::InvalidBase58(format!("{:?}", e)))?;
-
-    if bytes.len() != 32 {
-        return Err(KeyError::InvalidLength(bytes.len()));
-    }
-
-    let mut key_bytes = [0u8; 32];
-    key_bytes.copy_from_slice(&bytes);
-    Ok(x25519::PublicKey::from(key_bytes))
 }
 
 fn check_permissions(path: &Path) -> Result<(), KeyError> {
@@ -205,4 +204,135 @@ fn check_permissions(path: &Path) -> Result<(), KeyError> {
     }
 
     Ok(())
+}
+
+#[derive(Debug, Error)]
+pub enum RecoveryError {
+    #[error("Invalid recovery phrase format (expected {RECOVERY_WORDS} proquints)")]
+    InvalidFormat,
+    #[error("Invalid proquint: {0}")]
+    InvalidProquint(String),
+    #[error("Too many errors to correct (can correct up to {} proquints = {} characters)", ECC_BYTES / 4, ECC_BYTES / 4 * 5)]
+    TooManyErrors,
+    #[error("Reed-Solomon decoding failed: {0}")]
+    RsError(String),
+}
+
+fn recovery_enc(seed: &[u8; 16]) -> RecoveryPhrase {
+    use reed_solomon::Encoder;
+    use std::ops::Deref;
+
+    let enc = Encoder::new(ECC_BYTES);
+    let encoded = enc.encode(seed);
+
+    let all_bytes: &[u8] = encoded.deref();
+    let mut proquints = Vec::with_capacity(RECOVERY_WORDS);
+
+    for chunk in all_bytes.chunks_exact(2) {
+        let value = u16::from_be_bytes([chunk[0], chunk[1]]);
+        proquints.push(value.to_quint());
+    }
+
+    proquints.try_into().unwrap()
+}
+
+fn recovery_dec(phrase: &RecoveryPhrase) -> Result<[u8; 16], RecoveryError> {
+    use reed_solomon::Decoder;
+
+    let mut encoded_bytes = Vec::with_capacity(20);
+    for (i, pq) in phrase.iter().enumerate() {
+        let value = match u16::from_quint(pq) {
+            Ok(v) => v,
+            Err(_) => {
+                tracing::warn!(
+                    "Invalid proquint at position {}: '{}', treating as 0x0000",
+                    i,
+                    pq
+                );
+                0
+            }
+        };
+        let bytes = value.to_be_bytes();
+        encoded_bytes.push(bytes[0]);
+        encoded_bytes.push(bytes[1]);
+    }
+
+    let dec = Decoder::new(ECC_BYTES);
+    let (corrected, num_errors) = dec
+        .correct_err_count(&encoded_bytes, None)
+        .map_err(|_| RecoveryError::TooManyErrors)?;
+
+    if num_errors > 0 {
+        tracing::info!("Corrected {} bytes in recovery phrase", num_errors);
+    }
+
+    let data = corrected.data();
+    let mut seed = [0u8; 16];
+    seed.copy_from_slice(&data[..16]);
+
+    Ok(seed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ed25519::{Signer, Verifier};
+    use rand::Rng;
+
+    #[test]
+    fn xed_binding() {
+        let (key, _) = TatuKey::generate(rand::rngs::OsRng);
+
+        let ed_pub = key.ed_pub();
+        let x_pub = key.x_pub();
+        let sig = key.ed_key().sign(b"test message");
+
+        let derived_id = RemoteTatuKey::from_ed_pub(&ed_pub);
+        assert_eq!(derived_id.x_pub().as_bytes(), x_pub.as_bytes());
+
+        assert!(ed_pub.verify(b"test message", &sig).is_ok());
+    }
+
+    #[test]
+    fn recovery_roundtrip() {
+        let (key1, phrase) = TatuKey::generate(rand::rngs::OsRng);
+        println!("Recovery phrase: {}", phrase.join("-"));
+
+        let key2 = TatuKey::recover(&phrase).unwrap();
+
+        assert_eq!(key1.ed_pub().as_bytes(), key2.ed_pub().as_bytes());
+        assert_eq!(key1.x_pub().as_bytes(), key2.x_pub().as_bytes());
+    }
+
+    #[test]
+    fn recovery_ecc() {
+        let mut rng = rand::rngs::OsRng;
+        let (_, mut phrase) = TatuKey::generate(rand::rngs::OsRng);
+
+        let max_proquints = ECC_BYTES / 4;
+        let data_words = RECOVERY_WORDS - (ECC_BYTES / 2);
+
+        let mut corrupted = std::collections::HashSet::new();
+        while corrupted.len() < max_proquints {
+            let i = rng.gen_range(0..data_words);
+            if corrupted.insert(i) {
+                let random_value = rng.gen_range(0..=u16::MAX);
+                phrase[i] = random_value.to_quint();
+            }
+        }
+
+        assert!(TatuKey::recover(&phrase).is_ok());
+    }
+
+    #[test]
+    fn recovery_too_many_errors() {
+        let (_, mut phrase) = TatuKey::generate(rand::rngs::OsRng);
+
+        let too_many = (ECC_BYTES / 4) + 1;
+        for i in 0..too_many {
+            phrase[i] = "babab".to_string();
+        }
+
+        assert!(TatuKey::recover(&phrase).is_err());
+    }
 }

@@ -2290,6 +2290,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "proquint"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2d21db7e4fd8a4095386076130b21e4fbfa1220804f431aa9fd8649cd9e01fb"
+
+[[package]]
 name = "quote"
 version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2399,6 +2405,12 @@ dependencies = [
  "libredox",
  "thiserror 1.0.69",
 ]
+
+[[package]]
+name = "reed-solomon"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13de68c877a77f35885442ac72c8beb7c2f0b09380c43b734b9d63d1db69ee54"
 
 [[package]]
 name = "regex"
@@ -2931,7 +2943,9 @@ dependencies = [
  "ed25519-dalek",
  "futures",
  "once_cell",
+ "proquint",
  "rand 0.8.5",
+ "reed-solomon",
  "rmp-serde",
  "rug",
  "serde",

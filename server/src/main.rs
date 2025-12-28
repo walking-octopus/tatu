@@ -28,7 +28,8 @@ struct Runtime {
 
 impl Runtime {
     fn load(args: Args) -> anyhow::Result<(String, Self)> {
-        let keypair = Arc::new(TatuKey::load_or_generate(&args.key_path)?);
+        let (keypair, _) = TatuKey::load_or_generate(&args.key_path, None)?;
+        let keypair = Arc::new(keypair);
 
         tracing::info!("Server key: {}", keypair);
         tracing::info!("Post this to multiple independent channels for enhanced protection!");

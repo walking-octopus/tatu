@@ -99,6 +99,9 @@ impl Keychain {
         lines.sort();
         let content = lines.join("\n") + "\n";
 
+        if let Some(parent) = self.servers_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         fs::write(&self.servers_path, content)
     }
 
