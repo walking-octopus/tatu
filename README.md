@@ -59,8 +59,8 @@ Tatu provides players with a persistent, friendly cross-server identity without 
     - Copy another player's skin: `PLAYER=jeb_; curl "https://sessionserver.mojang.com/session/minecraft/profile/$(curl https://api.mojang.com/users/profiles/minecraft/$PLAYER | jq .id -r)?unsigned=false" | jq .properties`
 
    - Upload your PNG to MineSkin.org. 
-      - Copy the "properties" from /give player head command
-      - Convert SNBT to JSON (add quotes around keys). It should now look something like this: `[{"name": "textures", "value": "ewogICJ0aW1lc3Rh...", "signature": "VbBnt+S6b/SpmBqY..."}]`
+      - Copy the Value and Signature blobs into the appropriate fields. See template below:
+      - `[{"name": "textures", "value": "ewogICJ0aW1lc3Rh...", "signature": "VbBnt+S6b/SpmBqY..."}]`
 
    - Save it as `my-wonderful.skin`
    
